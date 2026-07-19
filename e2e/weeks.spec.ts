@@ -23,6 +23,18 @@ const ready = !!supabaseUrl && !!serviceKey && !!password;
 const TEST_PREFIX = "E2E테스트회차";
 const prefix = () => `${TEST_PREFIX}-${test.info().project.name}`;
 
+/**
+ * 회차 번호 대역을 프로젝트별로 나눕니다.
+ *
+ * 회차 번호는 전역 유니크이고 재사용하지 않습니다. 폼이 제안하는 기본값은
+ * `max(order_no) + 1` 인데, desktop 과 mobile 이 동시에 생성하면 둘 다 같은
+ * 번호를 읽어 한쪽이 중복 키로 실패합니다. 앱 동작 자체는 옳지만(중복을
+ * 거부하는 게 맞습니다) 테스트가 서로를 방해하면 안 됩니다.
+ *
+ * 정리(cleanup)가 물리 삭제라 다음 실행에서 같은 번호를 다시 쓸 수 있습니다.
+ */
+const orderNoBase = () => (test.info().project.name === "desktop" ? 900 : 940);
+
 function rest(path: string, init?: RequestInit) {
   return fetch(`${supabaseUrl}/rest/v1/${path}`, {
     ...init,
@@ -40,6 +52,20 @@ async function cleanup() {
     method: "DELETE",
   });
   await rest("rate_limits?bucket=like.admin-login%3A*", { method: "DELETE" });
+}
+
+/** 명시적 번호로 회차를 만듭니다. 번호를 지정해야 프로젝트끼리 충돌하지 않습니다. */
+async function createSession(
+  page: Page,
+  options: { orderNo: number; title: string; publish?: boolean; heldOn?: string },
+) {
+  await page.getByRole("button", { name: "＋ 새 회차" }).click();
+  await page.getByLabel("번호").fill(String(options.orderNo));
+  await page.getByLabel("제목").fill(options.title);
+  if (options.heldOn) await page.getByLabel("날짜").fill(options.heldOn);
+  if (options.publish) await page.getByLabel("바로 공개").check();
+  await page.getByRole("button", { name: "만들기" }).click();
+  await expect(page.getByText(options.title).first()).toBeVisible();
 }
 
 async function login(page: Page) {
@@ -68,16 +94,13 @@ test.describe("회차", () => {
 
   test("관리자가 회차를 만들면 목록과 홈에 나타난다", async ({ page }) => {
     await login(page);
-
-    await page.getByRole("button", { name: "＋ 새 회차" }).click();
     const title = `${prefix()} 생성`;
-    await page.getByLabel("제목").fill(title);
-    await page.getByLabel("날짜").fill("2026-08-26");
-    await page.getByLabel("바로 공개").check();
-    await page.getByRole("button", { name: "만들기" }).click();
-
-    // 관리 표에 반영
-    await expect(page.getByText(title)).toBeVisible();
+    await createSession(page, {
+      orderNo: orderNoBase() + 1,
+      title,
+      publish: true,
+      heldOn: "2026-08-26",
+    });
 
     // 홈에도 반영. '이번 주차' 카드와 회차 그리드 양쪽에 나오므로 first() 로 좁힙니다.
     await page.goto("/");
@@ -86,13 +109,8 @@ test.describe("회차", () => {
 
   test("준비 중 회차는 수강생에게 보이지 않는다", async ({ page, context }) => {
     await login(page);
-
-    await page.getByRole("button", { name: "＋ 새 회차" }).click();
     const title = `${prefix()} 비공개`;
-    await page.getByLabel("제목").fill(title);
-    // '바로 공개'를 체크하지 않음
-    await page.getByRole("button", { name: "만들기" }).click();
-    await expect(page.getByText(title)).toBeVisible();
+    await createSession(page, { orderNo: orderNoBase() + 2, title });
 
     // 로그아웃한 상태(= 수강생)에서는 안 보여야 한다
     await context.clearCookies();
@@ -103,12 +121,8 @@ test.describe("회차", () => {
 
   test("삭제는 제목을 그대로 입력해야만 실행된다", async ({ page }) => {
     await login(page);
-
-    await page.getByRole("button", { name: "＋ 새 회차" }).click();
     const title = `${prefix()} 삭제대상`;
-    await page.getByLabel("제목").fill(title);
-    await page.getByRole("button", { name: "만들기" }).click();
-    await expect(page.getByText(title)).toBeVisible();
+    await createSession(page, { orderNo: orderNoBase() + 3, title });
 
     await page.getByRole("button", { name: "삭제" }).first().click();
 
@@ -117,7 +131,6 @@ test.describe("회차", () => {
     await expect(confirm).toBeDisabled();
 
     // 비슷하지만 다른 제목도 통하지 않는다
-    await page.getByRole("textbox").last().fill(`${title} `);
     await page.getByRole("textbox").last().fill(`${title}x`);
     await expect(confirm).toBeDisabled();
 
@@ -131,20 +144,18 @@ test.describe("회차", () => {
 
   test("회차 상세와 이전·다음 이동", async ({ page }) => {
     await login(page);
+    await createSession(page, {
+      orderNo: orderNoBase() + 4,
+      title: `${prefix()} 앞A`,
+      publish: true,
+    });
+    await createSession(page, {
+      orderNo: orderNoBase() + 5,
+      title: `${prefix()} 뒤B`,
+      publish: true,
+    });
 
-    for (const [n, suffix] of [["앞", "A"], ["뒤", "B"]] as const) {
-      await page.getByRole("button", { name: "＋ 새 회차" }).click();
-      await page.getByLabel("제목").fill(`${prefix()} ${n}${suffix}`);
-      await page.getByLabel("바로 공개").check();
-      await page.getByRole("button", { name: "만들기" }).click();
-      await expect(
-        page.getByText(`${prefix()} ${n}${suffix}`).first(),
-      ).toBeVisible();
-    }
-
-    await page.goto("/");
-    await page.getByText(`${prefix()} 앞A`).last().click();
-
+    await page.goto(`/weeks/${orderNoBase() + 4}`);
     await expect(
       page.getByRole("heading", { name: new RegExp(`${prefix()} 앞A`) }),
     ).toBeVisible();
@@ -160,24 +171,16 @@ test.describe("회차", () => {
 
   test("삭제된 회차는 404 가 아니라 안내를 보여준다", async ({ page }) => {
     await login(page);
-
-    await page.getByRole("button", { name: "＋ 새 회차" }).click();
+    const orderNo = orderNoBase() + 6;
     const title = `${prefix()} 삭제안내`;
-    await page.getByLabel("제목").fill(title);
-    await page.getByLabel("바로 공개").check();
-    await page.getByRole("button", { name: "만들기" }).click();
-    await expect(page.getByText(title)).toBeVisible();
-
-    // 방금 만든 회차의 번호를 표에서 읽어온다
-    const row = page.locator("li").filter({ hasText: title }).first();
-    const orderNo = (await row.locator("span").first().innerText()).trim();
+    await createSession(page, { orderNo, title, publish: true });
 
     await page.getByRole("button", { name: "삭제" }).first().click();
     await page.getByRole("textbox").last().fill(title);
     await page.getByRole("button", { name: "삭제", exact: true }).last().click();
     await expect(page.getByText(title)).toHaveCount(0);
 
-    const response = await page.goto(`/weeks/${Number(orderNo)}`);
+    const response = await page.goto(`/weeks/${orderNo}`);
     expect(response?.status()).toBe(200);
     await expect(
       page.getByRole("heading", { name: "삭제된 회차예요" }),
