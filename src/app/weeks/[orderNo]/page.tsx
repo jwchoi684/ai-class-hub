@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { isAdmin } from "@/lib/auth/session";
 import { getSessionByOrderNo, listSessions } from "@/lib/db/sessions";
+import { formatBytes, listMaterials } from "@/lib/db/materials";
+import { displayHost } from "@/lib/net/url-safety";
 import { formatClassDateLong } from "@/lib/datetime";
+import { Materials, type MaterialView } from "./materials";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -52,7 +55,25 @@ export default async function WeekPage({
   }
 
   const { session } = lookup;
-  const siblings = await listSessions(admin);
+  const [siblings, materials] = await Promise.all([
+    listSessions(admin),
+    listMaterials(session.id),
+  ]);
+
+  const materialViews: MaterialView[] = materials.map((material) => ({
+    id: material.id,
+    kind: material.kind,
+    title: material.title,
+    description: material.description,
+    href: material.href,
+    subtitle:
+      material.kind === "link"
+        ? displayHost(material.href)
+        : [material.file?.name, formatBytes(material.file?.sizeBytes ?? null)]
+            .filter(Boolean)
+            .join(" · "),
+  }));
+
   const index = siblings.findIndex((item) => item.id === session.id);
   const previous = index > 0 ? siblings[index - 1] : null;
   const next = index >= 0 && index < siblings.length - 1 ? siblings[index + 1] : null;
@@ -84,13 +105,12 @@ export default async function WeekPage({
           </p>
         </div>
 
-        {/* 자료 리스트는 6단계, 결과물은 7단계에서 여기에 붙습니다. */}
-        <section className="rounded-xl border border-dashed border-line p-8 text-center">
-          <p className="text-xs text-muted">
-            아직 올라온 자료가 없어요.
-            {admin ? " 관리자 화면에서 자료를 추가할 수 있게 됩니다." : ""}
-          </p>
-        </section>
+        <Materials
+          sessionId={session.id}
+          orderNo={session.orderNo}
+          materials={materialViews}
+          isAdmin={admin}
+        />
 
         {previous || next ? (
           <nav className="flex items-center justify-between gap-3 border-t border-line pt-4">
