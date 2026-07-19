@@ -54,9 +54,29 @@ pnpm exec playwright install chromium webkit
 
 마이그레이션은 `supabase/migrations/` 에 있고 순서대로 적용합니다.
 
-**로컬에서 쓰려면** `.env.local` 에 `SUPABASE_SERVICE_ROLE_KEY` 를 채워야 합니다.
-Supabase 대시보드 → Project Settings → API → `service_role` 에서 복사하세요.
-이 키는 저장소에 커밋하지 않습니다.
+### 로컬 개발
+
+Docker 가 떠 있어야 합니다.
+
+```bash
+pnpm supabase:start   # 로컬 Supabase 스택 (첫 실행은 이미지 내려받느라 몇 분)
+pnpm db:reset         # 마이그레이션을 처음부터 다시 적용
+pnpm supabase:stop    # 정리
+```
+
+`.env.local` 의 기본값은 **로컬 스택**입니다. 거기 적힌 두 키는 Supabase CLI 가
+모두에게 똑같이 주는 공개된 개발용 값이라 비밀이 아닙니다.
+프로덕션 DB 를 직접 보려면 `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` 만
+프로덕션 값으로 바꾸세요(대시보드 → Project Settings → API → `service_role`).
+프로덕션 키는 저장소에 커밋하지 않습니다.
+
+> **로컬 스택이 프로덕션이 숨기는 버그를 잡습니다.**
+> 호스팅 Supabase 는 새 테이블에 `service_role` 전 권한을 자동으로 주지만
+> 로컬 CLI 스택은 `SELECT` 조차 주지 않습니다. 그래서 프로덕션에서는 멀쩡하던
+> 마이그레이션이 로컬에서는 PostgREST 42501 로 전부 실패했습니다
+> (앱은 엉뚱하게 "비밀번호가 설정되지 않았어요"를 띄웁니다).
+> 지금은 `0004` 가 필요한 권한을 **명시적으로** 부여하므로 어느 환경이든 같게 동작합니다.
+> 새 마이그레이션을 쓸 때도 호스트의 기본 권한에 기대지 마세요.
 
 ```bash
 pnpm seed:admin            # 운영자 비밀번호 최초 생성 (평문은 화면에 1회만)

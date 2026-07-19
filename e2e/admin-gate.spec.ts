@@ -10,11 +10,43 @@ import { expect, test } from "@playwright/test";
  * 비밀번호까지 실제로 통과시키는 테스트는 ADMIN_TEST_PASSWORD 가 있을 때만
  * 돕니다. 비밀번호를 저장소에 넣지 않기 위해서입니다.
  */
-const hasDb = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const hasDb = !!supabaseUrl && !!serviceKey;
 const testPassword = process.env.ADMIN_TEST_PASSWORD;
 
+/**
+ * 로그인 시도 카운터를 비웁니다.
+ *
+ * 데스크톱·모바일 프로젝트가 모두 127.0.0.1 에서 오기 때문에 레이트 리밋
+ * 버킷을 공유합니다. 로그인하는 테스트가 몇 개만 모여도 분당 5회 제한에
+ * 걸려서, 정작 검증하려던 것과 무관한 이유로 빨간불이 뜹니다.
+ *
+ * 제한값을 느슨하게 푸는 대신 테스트에서 카운터를 지웁니다 — 그 제한은
+ * 4자리 PIN 과 짧은 비밀번호를 지키는 실제 방어선이라 건드리면 안 됩니다.
+ */
+async function clearLoginRateLimit() {
+  await fetch(
+    `${supabaseUrl}/rest/v1/rate_limits?bucket=like.admin-login%3A*`,
+    {
+      method: "DELETE",
+      headers: {
+        apikey: serviceKey!,
+        Authorization: `Bearer ${serviceKey}`,
+      },
+    },
+  );
+}
+
 test.describe("운영자 게이트", () => {
-  test.skip(!hasDb, "SUPABASE_SERVICE_ROLE_KEY 가 없어 건너뜁니다");
+  test.skip(
+    !hasDb,
+    "SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 가 없어 건너뜁니다",
+  );
+
+  test.beforeEach(async () => {
+    await clearLoginRateLimit();
+  });
 
   test("로그인 전에는 비밀번호 폼만 보인다", async ({ page }) => {
     await page.goto("/admin");

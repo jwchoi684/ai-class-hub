@@ -22,5 +22,16 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
+    env: {
+      /*
+       * 프로덕션 빌드인데 접속은 http 라, 그대로 두면 Secure 쿠키가 심기지
+       * 않습니다. Chrome 은 localhost 를 예외로 봐주지만 WebKit 은 버려서
+       * iPhone 프로젝트의 로그인 테스트만 실패합니다.
+       *
+       * 이 스위치는 Vercel 에서 무시됩니다(session.ts 에서 VERCEL 환경변수로
+       * 막습니다). 배포본의 쿠키 보안이 약해질 경로는 없습니다.
+       */
+      ALLOW_INSECURE_SESSION_COOKIE: "1",
+    },
   },
 });

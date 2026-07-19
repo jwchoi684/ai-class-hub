@@ -26,14 +26,27 @@ const SESSION_HOURS = 12;
 const REMEMBERED_DAYS = 30;
 
 /**
+ * 쿠키 보안 속성.
+ *
  * `__Host-` 접두사는 Secure + Path=/ + Domain 없음을 브라우저가 강제하게
  * 만듭니다. 서브도메인에서 쿠키를 덮어쓰는 공격을 원천 차단합니다.
+ * 다만 Secure 를 요구하므로 http 로 서비스되는 동안에는 쓸 수 없습니다.
  *
- * 다만 Secure 를 요구하므로 http 인 로컬 개발에서는 쓸 수 없습니다.
- * 그래서 환경에 따라 이름이 달라집니다 — 프로덕션에서만 강한 쪽을 씁니다.
+ * 로컬 e2e 가 곤란해집니다. 프로덕션 빌드를 대상으로 돌리는데(그래야 배포본과
+ * 같은 코드를 검증합니다) 접속은 http://127.0.0.1 이라, Chrome 은 localhost 를
+ * 예외로 봐주지만 WebKit 은 Secure 쿠키를 그냥 버립니다. 그래서 iPhone 프로젝트
+ * 에서만 로그인 테스트가 실패합니다 — 프로덕션에는 없는 문제인데 검증이 막힙니다.
+ *
+ * 그래서 우회로를 두되, **Vercel 에서는 절대 켜지지 않도록** 막습니다.
+ * VERCEL 은 플랫폼이 항상 주입하므로 배포본에서 이 분기는 도달할 수 없습니다.
  */
-const IS_PROD = process.env.NODE_ENV === "production";
-export const SESSION_COOKIE = IS_PROD ? "__Host-ac_admin" : "ac_admin";
+const INSECURE_COOKIE_OVERRIDE =
+  process.env.ALLOW_INSECURE_SESSION_COOKIE === "1" && !process.env.VERCEL;
+
+const SECURE_COOKIES =
+  process.env.NODE_ENV === "production" && !INSECURE_COOKIE_OVERRIDE;
+
+export const SESSION_COOKIE = SECURE_COOKIES ? "__Host-ac_admin" : "ac_admin";
 
 /** 토큰은 DB 에 평문으로 두지 않습니다. DB 가 유출돼도 세션을 못 훔치게. */
 function hashToken(token: string): string {
@@ -115,7 +128,7 @@ export async function login(
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: IS_PROD,
+    secure: SECURE_COOKIES,
     sameSite: "lax",
     path: "/",
     maxAge: maxAgeSeconds,
