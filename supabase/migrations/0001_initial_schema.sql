@@ -12,11 +12,26 @@
 --      않는다. 잘못 누른 삭제가 곧 영구 손실이면 아무도 이 도구를 믿지 않는다.
 -- ============================================================================
 
--- Supabase 는 확장을 public 이 아니라 extensions 스키마에 둡니다. 스키마를
--- 지정하지 않으면 public 에 설치돼 관례와 어긋나고, 나중에 public 을 덤프·복원할
--- 때 꼬입니다. extensions 는 search_path 에 있으므로 gin_trgm_ops 는 그대로
--- 참조됩니다.
-create extension if not exists pg_trgm with schema extensions;
+-- ── 공용 헬퍼 ──────────────────────────────────────────────────────────────
+
+-- updated_at 자동 갱신.
+--
+-- DEFAULT now() 는 INSERT 에만 걸립니다. 트리거가 없으면 모든 UPDATE 문이
+-- 손으로 `set updated_at = now()` 를 빠짐없이 써야 하고, 한 곳만 빠뜨리면
+-- 갤러리 카드에 '수정됨: (생성 시각)' 이 뜨거나 '비밀번호 마지막 교체 시각'이
+-- 틀립니다. 빠뜨렸다는 사실 자체를 눈치채기 어려운 종류의 버그입니다.
+create function set_updated_at() returns trigger language plpgsql as $$
+begin
+  new.updated_at := now();
+  return new;
+end $$;
+
+-- 배열 원소의 최대 길이. CHECK 제약 안에서는 서브쿼리를 쓸 수 없고
+-- array_to_string 은 STABLE 이라(확인함) 쓸 수 없어서 IMMUTABLE 함수가 필요합니다.
+create function max_element_length(arr text[]) returns integer
+  language sql immutable parallel safe as $$
+  select coalesce(max(char_length(t)), 0) from unnest(arr) as t
+$$;
 
 -- ── 사이트 전역 설정 ────────────────────────────────────────────────────────
 -- 클래스명과 QR 기준 주소를 코드에 하드코딩하면 오타 하나에 재배포가 필요합니다.
@@ -28,8 +43,14 @@ create table site_settings (
   -- 돌아갑니다 — 관리자가 손을 뗀 사이트가 수강생 결과물을 영구 공개한 채로
   -- 남는 것을 막는 스위치입니다.
   archive_mode boolean     not null default false,
-  updated_at   timestamptz not null default now()
+  updated_at   timestamptz not null default now(),
+
+  constraint site_settings_class_name_len check (char_length(class_name) between 1 and 60),
+  constraint site_settings_base_url_len   check (char_length(coalesce(base_url, '')) <= 2048)
 );
+
+create trigger site_settings_set_updated_at before update on site_settings
+  for each row execute function set_updated_at();
 
 insert into site_settings (id) values (1);
 
@@ -43,8 +64,15 @@ create table class_sessions (
   is_published boolean     not null default false,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
-  deleted_at   timestamptz
+  deleted_at   timestamptz,
+
+  constraint class_sessions_order_no_range check (order_no between 1 and 999),
+  constraint class_sessions_title_len      check (char_length(title) between 1 and 200),
+  constraint class_sessions_desc_len       check (char_length(coalesce(description, '')) <= 2000)
 );
+
+create trigger class_sessions_set_updated_at before update on class_sessions
+  for each row execute function set_updated_at();
 
 -- 번호는 한 번 쓰면 재사용하지 않습니다.
 --
@@ -54,9 +82,17 @@ create table class_sessions (
 --
 -- DEFERRABLE 인 이유: 3주차와 4주차를 맞바꾸는 순간 중간 상태가 유니크를
 -- 위반합니다. 트랜잭션 끝에서 검사하게 두면 임시값을 경유하지 않아도 됩니다.
+--
+-- 다만 기본값은 IMMEDIATE 입니다. INITIALLY DEFERRED 로 두면 평범한 중복 INSERT
+-- 도 COMMIT 에서야 터져서 어느 문장이 원인인지 잃고, 사용자에게 친절한 에러를
+-- 주기 어렵습니다. DEFERRED 가 실제로 필요한 곳은 순서 맞바꾸기 한 곳뿐이니
+-- 거기서만 `set constraints class_sessions_order_no_key deferred` 를 씁니다.
+--
+-- 주의: DEFERRABLE 인 이상 INITIALLY 상태와 무관하게 이 제약은 ON CONFLICT 의
+-- arbiter 로 쓸 수 없습니다. 멱등 INSERT 는 `where not exists` 로 하세요.
 alter table class_sessions
   add constraint class_sessions_order_no_key unique (order_no)
-  deferrable initially deferred;
+  deferrable initially immediate;
 
 create index class_sessions_listing_idx
   on class_sessions (order_no) where deleted_at is null;
@@ -109,11 +145,18 @@ create table materials (
   constraint materials_kind_shape check (
     (kind = 'link' and external_url is not null and storage_path is null) or
     (kind = 'file' and storage_path is not null and external_url is null)
-  )
+  ),
+  constraint materials_title_len check (char_length(title) between 1 and 200),
+  constraint materials_desc_len  check (char_length(coalesce(description, '')) <= 2000),
+  constraint materials_url_len   check (char_length(coalesce(external_url, '')) <= 2048),
+  constraint materials_size_sane check (file_size_bytes is null or file_size_bytes between 0 and 52428800)
 );
 
+create trigger materials_set_updated_at before update on materials
+  for each row execute function set_updated_at();
+
 create index materials_by_session_idx
-  on materials (class_session_id, sort_order, created_at)
+  on materials (class_session_id, sort_order, created_at, id)
   where deleted_at is null;
 
 -- ── 수강생 결과물 ──────────────────────────────────────────────────────────
@@ -146,6 +189,11 @@ create table gallery_posts (
   thumb_path          text,
   image_width         integer,
   image_height        integer,
+  image_bytes         bigint,
+  -- 소프트 삭제와 별개로 이미지 '파일'은 삭제 요청 시 즉시 물리 삭제합니다.
+  -- 화면에서만 사라지고 파일 주소가 살아 있으면 "지워주세요" 요청의 의미가
+  -- 없어지기 때문입니다. 이 값이 채워져 있으면 복구해도 썸네일은 못 돌아옵니다.
+  media_purged_at     timestamptz,
   link_preview_id     uuid        references link_previews (id) on delete set null,
   -- OG 추출이 실패했을 때 쓰는 사용자 업로드 이미지. 링크 결과물의 절반 이상은
   -- 쓸만한 og:image 가 없다는 전제로 설계했습니다.
@@ -158,7 +206,14 @@ create table gallery_posts (
   -- 소유권 판정의 단일 기준. 서명된 __Host-visitor 쿠키의 값이며, 같은
   -- 브라우저에서는 이 값만으로 통과시켜 PIN 을 묻지 않습니다.
   visitor_id          uuid        not null,
-  created_ip_hash     text,
+
+  -- created_ip_hash 컬럼은 두지 않습니다.
+  --
+  -- 솔트 없는 IPv4 해시는 익명화가 아닙니다. 공간이 2^32 뿐이라 노트북으로
+  -- 몇 분이면 전수 대조가 끝나고, 대상이 20명이면 강의실·집 IP 후보 몇 개만
+  -- 넣어봐도 익명 게시물의 작성자가 특정됩니다. 주간 pg_dump 백업이 그 값을
+  -- 저장소로 나른다는 점까지 겹칩니다.
+  -- 남용 방어는 rate_limits 가 이미 하므로 IP 를 남겨서 얻는 실익이 없습니다.
 
   is_pinned           boolean     not null default false,
   search_text         text generated always as (
@@ -175,25 +230,59 @@ create table gallery_posts (
   constraint gallery_posts_kind_shape check (
     (kind = 'link'  and external_url is not null and image_path is null) or
     (kind = 'image' and image_path   is not null and external_url is null)
-  )
+  ),
+
+  /*
+   * 길이 제한 — 이 테이블에서 가장 중요한 제약입니다.
+   *
+   * 로그인이 없어서 주소만 알면 누구나 이 테이블에 INSERT 하는 라우트를
+   * 호출합니다. 길이 제한이 없으면 스크립트로 수 MB 문자열을 반복 POST 해
+   * 500MB 무료 DB 를 채울 수 있고, 여기서 세 가지가 겹쳐 되돌리기 어렵습니다:
+   * 설계상 아무것도 물리 삭제하지 않아 공간이 회수되지 않고, 복원 가능한
+   * 백업이 없으며, search_text 가 STORED 라 본문이 두 번 저장됩니다.
+   *
+   * 정원이 20명인 것과는 무관합니다 — 쓰기 엔드포인트는 인터넷 전체에
+   * 열려 있습니다. 데이터가 들어오기 전인 지금이 제약을 붙이는 유일하게
+   * 공짜인 시점입니다. 나중에는 위반 데이터 때문에 ADD CONSTRAINT 가
+   * 검증 단계에서 실패합니다.
+   */
+  constraint gallery_posts_title_len check (char_length(title) between 1 and 120),
+  constraint gallery_posts_desc_len  check (char_length(coalesce(description, '')) <= 2000),
+  constraint gallery_posts_nick_len  check (char_length(author_nickname) between 1 and 30),
+  constraint gallery_posts_url_len   check (char_length(coalesce(external_url, '')) <= 2048),
+  constraint gallery_posts_tag_len   check (max_element_length(tags) <= 20),
+  constraint gallery_posts_counts_nonneg check (reaction_count >= 0 and comment_count >= 0),
+  constraint gallery_posts_bytes_sane    check (image_bytes is null or image_bytes between 0 and 10485760)
 );
+
+create trigger gallery_posts_set_updated_at before update on gallery_posts
+  for each row execute function set_updated_at();
 
 -- 갤러리 기본 정렬(최신순) + 커서 페이지네이션용. 정렬 키와 타이브레이커를
 -- 함께 인덱싱해야 (created_at, id) 커서가 인덱스만으로 처리됩니다.
 create index gallery_posts_recent_idx
   on gallery_posts (created_at desc, id desc) where deleted_at is null;
 
+-- 커서 정렬 키에는 항상 id 를 마지막에 붙입니다. 같은 시각에 만들어진 행이
+-- 있으면 타이브레이커 없이는 페이지 경계에서 행을 건너뛰거나 중복시킵니다.
 create index gallery_posts_by_session_idx
-  on gallery_posts (class_session_id, created_at desc) where deleted_at is null;
+  on gallery_posts (class_session_id, created_at desc, id desc) where deleted_at is null;
 
 create index gallery_posts_hot_idx
-  on gallery_posts (reaction_count desc, created_at desc) where deleted_at is null;
+  on gallery_posts (reaction_count desc, created_at desc, id desc) where deleted_at is null;
 
 create index gallery_posts_tags_idx on gallery_posts using gin (tags);
 
--- 한국어는 Postgres 기본 형태소 분석기가 없어 to_tsvector 가 잘 듣지 않습니다.
--- 100개 안팎 규모에서는 트라이그램 ILIKE 로 충분합니다.
-create index gallery_posts_search_idx on gallery_posts using gin (search_text gin_trgm_ops);
+-- 검색 인덱스는 두지 않습니다.
+--
+-- 트라이그램 GIN 을 넣었다가 뺐습니다. 이 규모(100행 안팎)에서는 옵티마이저가
+-- 어차피 Seq Scan 을 고르고 — 전체가 몇 페이지뿐이라 그게 실제로 더 빠릅니다 —
+-- 게다가 트라이그램은 원리상 3글자 미만을 색인하지 못해 'AI', '웹' 같은 두 글자
+-- 검색은 후보에도 들지 못합니다. 이 앱에서 가장 흔할 검색어 길이입니다.
+-- 인덱스를 뺀 덕에 pg_trgm 확장 의존성도 함께 사라졌습니다.
+--
+-- 검색은 `search_text ilike '%' || q || '%'` 로 충분합니다. 결과물이 수백 개를
+-- 넘어가면 그때 다시 재는 게 맞습니다(검색 자체가 P2 입니다).
 
 -- 같은 사람이 올린 결과물을 찾을 때. 본인 글 목록에도 씁니다.
 create index gallery_posts_visitor_idx on gallery_posts (visitor_id);
@@ -201,7 +290,10 @@ create index gallery_posts_visitor_idx on gallery_posts (visitor_id);
 -- 읽기 경로는 항상 이 뷰만 조회합니다.
 --
 -- 'select *' 실수 한 번으로 전원의 PIN 해시가 브라우저로 내려가는 사고가
--- Supabase 에서 가장 흔합니다. 코드 규율이 아니라 스키마로 막습니다.
+-- Supabase 에서 가장 흔합니다. 이 뷰는 **읽기 경로의 기본값을 안전하게** 만듭니다.
+-- 다만 서버는 service_role 로 기반 테이블도 읽을 수 있으므로, 이 뷰가 우회를
+-- 물리적으로 막아주지는 않습니다 — 기반 테이블 직접 조회 금지는 코드 리뷰로
+-- 강제해야 합니다. 스키마가 대신해 주는 것으로 착각하지 마세요.
 create view gallery_posts_public
   with (security_invoker = true) as
 select
@@ -223,14 +315,17 @@ create table comments (
   author_nickname text        not null,
   body            text        not null,
   visitor_id      uuid        not null,
-  created_ip_hash text,
   created_at      timestamptz not null default now(),
   deleted_at      timestamptz,
-  deleted_by      text
+  deleted_by      text,
+
+  -- gallery_posts 와 같은 이유. 무인증 공개 쓰기 경로입니다.
+  constraint comments_body_len check (char_length(body) between 1 and 1000),
+  constraint comments_nick_len check (char_length(author_nickname) between 1 and 30)
 );
 
 create index comments_by_post_idx
-  on comments (gallery_post_id, created_at) where deleted_at is null;
+  on comments (gallery_post_id, created_at, id) where deleted_at is null;
 
 -- ── 이모지 반응 ────────────────────────────────────────────────────────────
 -- 유니크의 주체를 무엇으로 잡느냐가 전부입니다. IP 로 잡으면 같은 강의실
@@ -239,13 +334,61 @@ create index comments_by_post_idx
 --
 -- 4종으로 고정한 이유: 종류가 늘면 모바일에서 44px 터치 타깃을 유지하기 어렵고,
 -- 카운트가 흩어져 '반응 많은 순' 정렬이 흐릿해집니다. 추가는 CHECK 한 줄입니다.
+--
+-- FK 가 RESTRICT 인 이유: 나머지 FK 와 맞춥니다. CASCADE 로 두면 댓글이 0개인
+-- 게시물(초기에는 대부분입니다)을 Supabase 콘솔에서 실수로 DELETE 할 때 아무것도
+-- 막지 못하고 반응까지 조용히 함께 사라집니다. 복원 백업이 없는 전제 위에서는
+-- 그게 곧 영구 손실이고, 정확히 이 스키마가 막겠다고 선언한 사고 유형입니다.
+--
+-- 반응 취소(하트 다시 누르기)는 이 테이블에서 행을 물리 삭제하는 것이 의도된
+-- 동작입니다 — 소프트 삭제 원칙의 명시적 예외입니다.
 create table reactions (
-  gallery_post_id uuid        not null references gallery_posts (id) on delete cascade,
+  gallery_post_id uuid        not null references gallery_posts (id) on delete restrict,
   visitor_id      uuid        not null,
   emoji_code      text        not null check (emoji_code in ('heart', 'fire', 'clap', 'wow')),
   created_at      timestamptz not null default now(),
   primary key (gallery_post_id, visitor_id, emoji_code)
 );
+
+-- ── 카운터 동기화 ──────────────────────────────────────────────────────────
+--
+-- reaction_count / comment_count 는 비정규화 컬럼입니다. 애플리케이션이 별도
+-- 문장으로 증감시키면 한 번만 어긋나도 카드 숫자와 '반응 많은 순' 정렬이 조용히
+-- 틀리고, 틀렸다는 사실을 알아챌 방법이 없습니다.
+--
+-- 그래서 증분이 아니라 재계산합니다. 이 규모에서 COUNT 는 무시할 수 있는
+-- 비용이고, 드리프트가 누적되지 않아 자가 치유됩니다.
+create function sync_reaction_count() returns trigger language plpgsql as $$
+declare
+  pid uuid := coalesce(new.gallery_post_id, old.gallery_post_id);
+begin
+  update gallery_posts
+     set reaction_count = (select count(*) from reactions where gallery_post_id = pid)
+   where id = pid;
+  return null;
+end $$;
+
+create trigger reactions_count_sync
+  after insert or delete on reactions
+  for each row execute function sync_reaction_count();
+
+create function sync_comment_count() returns trigger language plpgsql as $$
+declare
+  pid uuid := coalesce(new.gallery_post_id, old.gallery_post_id);
+begin
+  update gallery_posts
+     set comment_count = (
+           select count(*) from comments
+            where gallery_post_id = pid and deleted_at is null
+         )
+   where id = pid;
+  return null;
+end $$;
+
+-- 댓글은 소프트 삭제라 deleted_at 변경도 카운트에 반영돼야 합니다.
+create trigger comments_count_sync
+  after insert or delete or update of deleted_at on comments
+  for each row execute function sync_comment_count();
 
 -- ── 공지 배너 ──────────────────────────────────────────────────────────────
 -- 단일 행 덮어쓰기 대신 여러 행 + 활성 1건. 지난 공지가 남아 있으면 "지난주에
@@ -256,8 +399,14 @@ create table announcements (
   link_url   text,
   is_active  boolean     not null default true,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+
+  constraint announcements_body_len check (char_length(body) between 1 and 500),
+  constraint announcements_link_len check (char_length(coalesce(link_url, '')) <= 2048)
 );
+
+create trigger announcements_set_updated_at before update on announcements
+  for each row execute function set_updated_at();
 
 create unique index announcements_single_active_idx
   on announcements ((true)) where is_active;
@@ -275,6 +424,9 @@ create table admin_credential (
   password_version integer     not null default 1,
   updated_at       timestamptz not null default now()
 );
+
+create trigger admin_credential_set_updated_at before update on admin_credential
+  for each row execute function set_updated_at();
 
 -- 무상태 JWT 가 아니라 서버 저장 불투명 토큰입니다. 강사가 프로젝터에 연결된
 -- PC 에서 로그인할 가능성이 높고, 그 세션을 나중에 폐기할 수 있어야 합니다.
@@ -309,6 +461,10 @@ create index rate_limits_expiry_idx on rate_limits (expires_at);
 -- ── 감사 로그 ──────────────────────────────────────────────────────────────
 -- 로그인이 없는 앱에서 '누가 지웠나'를 사후에 확인할 유일한 수단이고,
 -- PIN 무차별 대입 시도를 발견하는 채널입니다.
+-- meta 는 크기를 제한합니다. 여기에 요청 본문을 통째로 넣는 실수가 흔하고,
+-- 그러면 감사 로그가 무료 DB 를 채우는 경로가 됩니다.
+-- ip_hash 를 채운다면 반드시 ADMIN_PEPPER 로 HMAC 한 값이어야 합니다.
+-- 솔트 없는 IP 해시는 익명화가 아니라 그냥 IP 입니다.
 create table audit_log (
   id          bigint generated always as identity primary key,
   action      text        not null,
@@ -317,7 +473,9 @@ create table audit_log (
   target_id   uuid,
   meta        jsonb,
   ip_hash     text,
-  created_at  timestamptz not null default now()
+  created_at  timestamptz not null default now(),
+
+  constraint audit_log_meta_size check (meta is null or octet_length(meta::text) <= 4096)
 );
 
 create index audit_log_recent_idx on audit_log (created_at desc);
@@ -385,6 +543,7 @@ alter table upload_intents   enable row level security;
 -- 없습니다. 필요 없는 권한은 회수합니다.
 revoke all on all tables    in schema public from anon, authenticated;
 revoke all on all sequences in schema public from anon, authenticated;
+revoke all on all functions in schema public from anon, authenticated;
 
 -- 앞으로 추가될 테이블에도 같은 규칙이 자동 적용되게 합니다. 이게 없으면
 -- 다음 마이그레이션에서 만든 테이블만 조용히 anon 전권으로 돌아갑니다.

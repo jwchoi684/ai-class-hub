@@ -50,11 +50,30 @@ pnpm exec playwright install chromium webkit
 
 **아직 GitHub 연동이 안 돼 있습니다.** 현재 배포는 파일을 직접 올린 것이라 푸시해도 자동 배포되지 않습니다. Vercel 대시보드에서 저장소를 연결하면 그때부터 `main` 푸시가 곧 배포가 됩니다.
 
+## 데이터베이스
+
+마이그레이션은 `supabase/migrations/` 에 있고 순서대로 적용합니다.
+
+**로컬에서 쓰려면** `.env.local` 에 `SUPABASE_SERVICE_ROLE_KEY` 를 채워야 합니다.
+Supabase 대시보드 → Project Settings → API → `service_role` 에서 복사하세요.
+이 키는 저장소에 커밋하지 않습니다.
+
+```bash
+pnpm seed:admin            # 운영자 비밀번호 최초 생성 (평문은 화면에 1회만)
+pnpm seed:admin --reset    # 잊었을 때. 기존 세션도 전부 끊깁니다
+```
+
+핵심 규칙 세 가지:
+
+**anon key 를 브라우저에 내려보내지 않습니다.** 모든 읽기·쓰기가 서버를 거치고 `service_role` 을 씁니다. 로그인이 없어서 모든 방문자가 같은 `anon` role 이라, "운영자만"과 "PIN 을 아는 사람만"은 RLS 로 표현할 수 없기 때문입니다. 전 테이블에 RLS 를 켜고 정책은 0개(전면 거부) — 나중에 누가 클라이언트에서 supabase-js 를 쓰더라도 아무것도 읽히지 않게 하는 안전망입니다. 여기에 더해 `anon` 의 테이블 권한을 명시적으로 회수했습니다.
+
+**아무것도 물리 삭제하지 않습니다.** 무료 플랜에는 복원 가능한 백업이 없어서 잘못 누른 삭제가 곧 영구 손실입니다. FK 는 `ON DELETE RESTRICT`, 삭제는 전부 `deleted_at`. 예외는 두 가지 — 반응 취소, 그리고 삭제 요청 시 이미지 파일 자체(화면에서만 사라지면 "지워주세요"의 의미가 없으므로).
+
+**공개 쓰기 경로에는 길이 제한이 걸려 있습니다.** 로그인이 없어 주소만 알면 누구나 게시 라우트를 호출합니다. 제한이 없으면 스크립트로 무료 DB 를 채울 수 있고, 소프트 삭제라 공간도 회수되지 않습니다.
+
 ## 기술 스택
 
-Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Vitest · Playwright · Vercel
-
-Supabase(Postgres + Storage)는 3단계에서 붙습니다.
+Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Supabase (Postgres 17) · Vitest · Playwright · Vercel
 
 ## 구조
 
@@ -81,8 +100,8 @@ docs/           요구사항 정의서 + 화면 목업
 구현 순서는 [docs/REQUIREMENTS.md §7](docs/REQUIREMENTS.md) 기준입니다.
 
 - [x] 1. 배포 파이프라인 + 앱 셸 + 색인 차단 + 한국어 에러 화면 + 테스트 하네스
-- [ ] 2. 관리자 시드 스크립트
-- [ ] 3. 데이터 모델 + Storage
+- [x] 2. 관리자 시드 스크립트 (`pnpm seed:admin`)
+- [x] 3. 데이터 모델 — 13개 테이블 + 공개 뷰. Storage 버킷은 6단계에서 함께
 - [ ] 4. 운영자 비밀번호 게이트
 - [ ] 5. 회차 생성 + 목록/상세
 - [ ] 6. 자료 업로드 + 링크 등록

@@ -13,30 +13,9 @@
  *   같은 명령을 --reset 과 함께 다시 돌리면 됩니다. password_version 이
  *   올라가면서 기존 세션(강의실 PC 등)도 전부 무효가 됩니다.
  */
-import { randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { hashSecret } from "../src/lib/auth/hash";
-
-// 사람이 옮겨 적을 수 있어야 하므로 헷갈리는 글자(0/O, 1/l/I)를 뺍니다.
-const ALPHABET = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const PASSWORD_LENGTH = 20;
-
-function generatePassword(): string {
-  // 모듈러 편향을 피하려고 거부 샘플링을 씁니다. 비밀번호 생성에서
-  // 편향은 곧 엔트로피 손실입니다.
-  const max = Math.floor(256 / ALPHABET.length) * ALPHABET.length;
-  const out: string[] = [];
-
-  while (out.length < PASSWORD_LENGTH) {
-    for (const byte of randomBytes(PASSWORD_LENGTH)) {
-      if (byte >= max) continue;
-      out.push(ALPHABET[byte % ALPHABET.length]);
-      if (out.length === PASSWORD_LENGTH) break;
-    }
-  }
-
-  return out.join("");
-}
+import { generatePassword } from "../src/lib/auth/password";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
