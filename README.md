@@ -48,7 +48,11 @@ pnpm exec playwright install chromium webkit
 
 함수 리전을 서울로 고정한 이유: Supabase 가 서울에 있는데 함수가 기본값인 버지니아(`iad1`)에서 돌면 DB 쿼리마다 태평양을 왕복합니다.
 
-**아직 GitHub 연동이 안 돼 있습니다.** 현재 배포는 파일을 직접 올린 것이라 푸시해도 자동 배포되지 않습니다. Vercel 대시보드에서 저장소를 연결하면 그때부터 `main` 푸시가 곧 배포가 됩니다.
+저장소: https://github.com/jwchoi684/ai-class-hub (public)
+
+**Vercel ↔ GitHub 연동은 아직입니다.** 현재 배포는 파일을 직접 올린 것이라 `main` 에 푸시해도 자동 배포되지 않습니다. Vercel 대시보드 → `ai-class-hub` → Settings → Git 에서 이 저장소를 연결하면 그때부터 푸시가 곧 배포가 됩니다.
+
+**공개 저장소라는 점을 기억하세요.** 비밀값은 전부 `.env.local`(gitignore)과 Vercel 환경변수에만 있고 커밋 히스토리에도 없지만, 앞으로 코드에 키·비밀번호를 적지 않도록 주의가 필요합니다.
 
 ## 데이터베이스
 
