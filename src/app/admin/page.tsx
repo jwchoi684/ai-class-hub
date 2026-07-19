@@ -2,8 +2,15 @@ import { db } from "@/lib/db/admin-client";
 import { isAdmin } from "@/lib/auth/session";
 import { describeDevice } from "@/lib/auth/device";
 import { formatRelative } from "@/lib/datetime";
+import {
+  countsBySession,
+  listSessions,
+  suggestNextOrderNo,
+} from "@/lib/db/sessions";
+import { SiteHeader } from "@/components/site-header";
 import { LoginForm } from "./login-form";
 import { LogoutButtons } from "./logout-buttons";
+import { SessionManager } from "./session-manager";
 
 /** argon2 · Node 전용 모듈을 쓰므로 Edge 로 떨어지면 안 됩니다. */
 export const runtime = "nodejs";
@@ -19,20 +26,39 @@ export default async function AdminPage() {
     );
   }
 
-  const { data: sessions } = await db()
-    .from("admin_sessions")
-    .select("id, created_at, last_seen_at, expires_at, user_agent")
-    .is("revoked_at", null)
-    .gt("expires_at", new Date().toISOString())
-    .order("last_seen_at", { ascending: false });
+  const [{ data: sessions }, classSessions, counts, suggestedOrderNo] =
+    await Promise.all([
+      db()
+        .from("admin_sessions")
+        .select("id, created_at, last_seen_at, expires_at, user_agent")
+        .is("revoked_at", null)
+        .gt("expires_at", new Date().toISOString())
+        .order("last_seen_at", { ascending: false }),
+      listSessions(true),
+      countsBySession(),
+      suggestNextOrderNo(),
+    ]);
 
   const active = sessions ?? [];
 
+  const managed = classSessions.map((session) => ({
+    ...session,
+    materialCount: counts[session.id]?.materials ?? 0,
+    postCount: counts[session.id]?.posts ?? 0,
+  }));
+
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-6 py-10">
+    <>
+    <SiteHeader isAdmin />
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-8">
       <div className="flex items-center gap-2 rounded-lg bg-soft px-4 py-2.5">
         <span className="text-sm font-semibold text-accent">● 관리자 모드 ON</span>
+        <span className="text-xs text-muted">
+          사이트 전체에서 편집 컨트롤이 보입니다
+        </span>
       </div>
+
+      <SessionManager sessions={managed} suggestedOrderNo={suggestedOrderNo} />
 
       <section className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-5">
         <div className="flex flex-col gap-1">
@@ -64,9 +90,10 @@ export default async function AdminPage() {
 
       <section className="rounded-xl border border-dashed border-line p-5">
         <p className="text-xs text-muted">
-          회차 관리와 공지 편집은 다음 단계에서 여기에 붙습니다.
+          자료 업로드와 공지 편집은 다음 단계에서 여기에 붙습니다.
         </p>
       </section>
     </main>
+    </>
   );
 }

@@ -8,7 +8,10 @@ import { expect, test } from "@playwright/test";
 
 test("홈이 뜬다", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "AI 실전 클래스" })).toBeVisible();
+  // 헤더의 클래스명 링크는 회차가 있든 없든 항상 있습니다.
+  await expect(
+    page.getByRole("link", { name: "AI 실전 클래스" }).first(),
+  ).toBeVisible();
   await expect(page).toHaveTitle(/AI 실전 클래스/);
 });
 

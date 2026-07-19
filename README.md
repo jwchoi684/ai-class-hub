@@ -111,6 +111,7 @@ Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Supabase (Postgres 1
 ```
 src/
   app/          라우트. layout / page / not-found / error / robots
+  components/   공통 UI (헤더 등)
   lib/
     site.ts     사이트 설정과 배포 주소 (→ 나중에 site_settings 테이블)
     datetime.ts 모든 날짜 포매팅. 전부 KST 고정
@@ -134,7 +135,7 @@ docs/           요구사항 정의서 + 화면 목업
 - [x] 2. 관리자 시드 스크립트 (`pnpm seed:admin`)
 - [x] 3. 데이터 모델 — 13개 테이블 + 공개 뷰. Storage 버킷은 6단계에서 함께
 - [x] 4. 운영자 비밀번호 게이트 (`/admin`)
-- [ ] 5. 회차 생성 + 목록/상세
+- [x] 5. 회차 생성 + 목록/상세 (`/`, `/weeks/[번호]`, `/admin`)
 - [ ] 6. 자료 업로드 + 링크 등록
 - [ ] 7. 갤러리 게시 + 카드 그리드 + PIN 삭제
 - [ ] 8. 공지 배너 + QR 화면
