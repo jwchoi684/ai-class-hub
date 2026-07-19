@@ -198,7 +198,7 @@ Supabase 무료 플랜에는 사용자가 복원할 수 있는 백업이나 PITR
 | # | 항목 | 결정 | 영향 |
 |---|---|---|---|
 | 1 | 수업 성격 | **무료 / 사내 스터디** | Vercel Hobby 무료 플랜 그대로 사용. 약관 문제 없음, 운영비 0원 |
-| 2 | 도메인 | **`*.vercel.app` 서브도메인** | 커스텀 도메인 구매·연결 단계 없음. 1단계 배포 시 확정되는 주소를 QR 기준(`site_settings.base_url`)으로 고정 |
+| 2 | 도메인 | **확정: `ai-class-hub-virid.vercel.app`** | 1단계 배포 완료. 이 주소가 QR 기준(`site_settings.base_url`)입니다. 정식 도메인은 `ai-class-hub-jayjaewoongchoi-2571s-projects.vercel.app` 이지만 짧은 별칭 쪽을 QR 에 씁니다 |
 | 3 | 강의 슬라이드 | **HTML 슬라이드를 배포하고 그 주소를 링크로 등록** | 추가 개발 없음 — 이미 설계된 `materials.kind = 'link'`로 커버. **HTML/SVG 업로드 거부 규칙은 그대로 유지** |
 | 4 | 첫 수업 날짜 | 미정 | 확정되면 P0에서 더 덜어낼지 재검토 |
 
