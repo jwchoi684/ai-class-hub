@@ -1,4 +1,6 @@
 allowBuilds:
+  # tsx(시드 스크립트 실행)가 쓰는 번들러
+  esbuild: true
   # Next.js 이미지 최적화 + 나중에 서버 측 이미지 재인코딩(P1)에 사용
   sharp: true
   # eslint-config-next 의 네이티브 모듈 리졸버
