@@ -70,9 +70,27 @@ pnpm supabase:stop    # 정리
 
 `.env.local` 의 기본값은 **로컬 스택**입니다. 거기 적힌 두 키는 Supabase CLI 가
 모두에게 똑같이 주는 공개된 개발용 값이라 비밀이 아닙니다.
-프로덕션 DB 를 직접 보려면 `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` 만
-프로덕션 값으로 바꾸세요(대시보드 → Project Settings → API → `service_role`).
-프로덕션 키는 저장소에 커밋하지 않습니다.
+프로덕션 DB 를 직접 보려면 `SUPABASE_URL` / `SUPABASE_SECRET_KEY` 만 프로덕션
+값으로 바꾸세요. 프로덕션 키는 저장소에 커밋하지 않습니다.
+
+### Supabase 키는 secret 하나만 씁니다
+
+Supabase 가 키 체계를 바꿔 두 종류가 있습니다.
+
+| 종류 | 형태 | 대체하는 레거시 키 | 쓰는 곳 |
+|---|---|---|---|
+| publishable | `sb_publishable_…` | `anon` | 브라우저·모바일·공개 소스 |
+| secret | `sb_secret_…` | `service_role` | 서버·Edge Function |
+
+**이 앱에는 publishable 키가 필요 없습니다.** 브라우저에 Supabase 키를 아예
+내려보내지 않고 모든 읽기·쓰기를 서버가 대신하기 때문입니다. `SUPABASE_SECRET_KEY`
+하나만 채우면 됩니다 (대시보드 → Settings → API Keys → *Publishable and secret
+API keys* 탭).
+
+예전 이름 `SUPABASE_SERVICE_ROLE_KEY` 도 그대로 동작하고(레거시 JWT 는 2026년
+말까지 유효), 새 이름이 있으면 그쪽이 우선합니다. publishable 키를 서버 자리에
+잘못 넣으면 시작할 때 바로 막습니다 — 그대로 두면 RLS 전면 거부에 걸려 에러가
+아니라 '빈 목록'으로 나타나서 원인을 찾기 어렵습니다.
 
 > **로컬 스택이 프로덕션이 숨기는 버그를 잡습니다.**
 > 호스팅 Supabase 는 새 테이블에 `service_role` 전 권한을 자동으로 주지만

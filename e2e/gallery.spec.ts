@@ -5,7 +5,9 @@ import { expect, test, type Page } from "@playwright/test";
  * 로컬 스택 전용입니다 — 데이터를 실제로 만들고 지웁니다.
  */
 const supabaseUrl = process.env.SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// 새 이름을 먼저 보되 예전 이름도 받습니다 — 앱과 같은 규칙입니다.
+const serviceKey =
+  process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
 const password = process.env.ADMIN_TEST_PASSWORD;
 const ready = !!supabaseUrl && !!serviceKey && !!password;
 

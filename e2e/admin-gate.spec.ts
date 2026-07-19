@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 /*
  * 운영자 게이트 e2e.
  *
- * 이 스펙은 DB 연결(SUPABASE_SERVICE_ROLE_KEY)이 있어야 의미가 있습니다.
+ * 이 스펙은 DB 연결(SUPABASE_SECRET_KEY)이 있어야 의미가 있습니다.
  * 키가 없으면 /admin 이 환경변수 에러로 500 을 내므로 건너뜁니다 — 그래도
  * 스펙은 커밋해 둡니다. 키가 있는 환경에서는 그대로 돌아갑니다.
  *
@@ -11,7 +11,9 @@ import { expect, test } from "@playwright/test";
  * 돕니다. 비밀번호를 저장소에 넣지 않기 위해서입니다.
  */
 const supabaseUrl = process.env.SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// 새 이름을 먼저 보되 예전 이름도 받습니다 — 앱과 같은 규칙입니다.
+const serviceKey =
+  process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
 const hasDb = !!supabaseUrl && !!serviceKey;
 const testPassword = process.env.ADMIN_TEST_PASSWORD;
 
@@ -41,7 +43,7 @@ async function clearLoginRateLimit() {
 test.describe("운영자 게이트", () => {
   test.skip(
     !hasDb,
-    "SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 가 없어 건너뜁니다",
+    "SUPABASE_URL / SUPABASE_SECRET_KEY 가 없어 건너뜁니다",
   );
 
   test.beforeEach(async () => {

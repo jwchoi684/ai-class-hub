@@ -8,7 +8,9 @@ import { expect, test, type Page } from "@playwright/test";
  * 가리킨 채로 돌리지 마세요.
  */
 const supabaseUrl = process.env.SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// 새 이름을 먼저 보되 예전 이름도 받습니다 — 앱과 같은 규칙입니다.
+const serviceKey =
+  process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
 const password = process.env.ADMIN_TEST_PASSWORD;
 const ready = !!supabaseUrl && !!serviceKey && !!password;
 
