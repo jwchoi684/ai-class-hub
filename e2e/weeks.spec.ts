@@ -68,6 +68,25 @@ async function createSession(
   await expect(page.getByText(options.title).first()).toBeVisible();
 }
 
+/**
+ * 회차를 삭제합니다.
+ *
+ * .first()/.last() 를 쓰지 않습니다 — 관리 화면에 공지 편집기가 추가되면서
+ * 페이지의 textbox 순서가 바뀌자 엉뚱한 입력을 채워 테스트가 들쭉날쭉했습니다.
+ * 제목이 든 행 안으로 범위를 좁히면 화면에 무엇이 더 붙어도 안전합니다.
+ */
+async function deleteSession(page: Page, title: string, typed = title) {
+  const row = page.locator("li").filter({ hasText: title }).first();
+  await row.getByRole("button", { name: "삭제" }).click();
+
+  const confirmButton = row.getByRole("button", { name: "영구 삭제" });
+  const confirmInput = row.getByRole("textbox");
+
+  await expect(confirmButton).toBeDisabled();
+  await confirmInput.fill(typed);
+  return { row, confirmButton, confirmInput };
+}
+
 async function login(page: Page) {
   await rest("rate_limits?bucket=like.admin-login%3A*", { method: "DELETE" });
   await page.goto("/admin");
@@ -124,22 +143,20 @@ test.describe("회차", () => {
     const title = `${prefix()} 삭제대상`;
     await createSession(page, { orderNo: orderNoBase() + 3, title });
 
-    await page.getByRole("button", { name: "삭제" }).first().click();
-
-    const confirm = page.getByRole("button", { name: "삭제", exact: true }).last();
-    // 아무것도 입력하지 않았으면 눌리지 않는다
-    await expect(confirm).toBeDisabled();
-
-    // 비슷하지만 다른 제목도 통하지 않는다
-    await page.getByRole("textbox").last().fill(`${title}x`);
-    await expect(confirm).toBeDisabled();
+    // 비슷하지만 다른 제목으로는 활성화되지 않아야 합니다.
+    const { row, confirmButton, confirmInput } = await deleteSession(
+      page,
+      title,
+      `${title}x`,
+    );
+    await expect(confirmButton).toBeDisabled();
 
     // 정확히 일치해야 활성화
-    await page.getByRole("textbox").last().fill(title);
-    await expect(confirm).toBeEnabled();
-    await confirm.click();
+    await confirmInput.fill(title);
+    await expect(confirmButton).toBeEnabled();
+    await confirmButton.click();
 
-    await expect(page.getByText(title)).toHaveCount(0);
+    await expect(row).toHaveCount(0);
   });
 
   test("회차 상세와 이전·다음 이동", async ({ page }) => {
@@ -175,10 +192,9 @@ test.describe("회차", () => {
     const title = `${prefix()} 삭제안내`;
     await createSession(page, { orderNo, title, publish: true });
 
-    await page.getByRole("button", { name: "삭제" }).first().click();
-    await page.getByRole("textbox").last().fill(title);
-    await page.getByRole("button", { name: "삭제", exact: true }).last().click();
-    await expect(page.getByText(title)).toHaveCount(0);
+    const { row, confirmButton } = await deleteSession(page, title);
+    await confirmButton.click();
+    await expect(row).toHaveCount(0);
 
     const response = await page.goto(`/weeks/${orderNo}`);
     expect(response?.status()).toBe(200);

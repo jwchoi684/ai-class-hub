@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
+import { AnnouncementBanner } from "@/components/announcement-banner";
+import { getActiveAnnouncement } from "@/lib/db/announcements";
 import { isAdmin } from "@/lib/auth/session";
 import { listSessions, type ClassSession } from "@/lib/db/sessions";
 import { pickCurrentSession } from "@/lib/current-session";
@@ -11,11 +13,15 @@ export const runtime = "nodejs";
 
 export default async function Home() {
   const admin = await isAdmin();
-  const sessions = await listSessions(admin);
+  const [sessions, announcement] = await Promise.all([
+    listSessions(admin),
+    getActiveAnnouncement(),
+  ]);
   const current = pickCurrentSession(sessions, todayInKst());
 
   return (
     <>
+      <AnnouncementBanner announcement={announcement} />
       <SiteHeader isAdmin={admin} />
 
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-8">

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
+import { AnnouncementBanner } from "@/components/announcement-banner";
+import { getActiveAnnouncement } from "@/lib/db/announcements";
 import { isAdmin } from "@/lib/auth/session";
 import { getSessionByOrderNo, listSessions } from "@/lib/db/sessions";
 import { formatBytes, listMaterials } from "@/lib/db/materials";
@@ -55,9 +57,10 @@ export default async function WeekPage({
   }
 
   const { session } = lookup;
-  const [siblings, materials] = await Promise.all([
+  const [siblings, materials, announcement] = await Promise.all([
     listSessions(admin),
     listMaterials(session.id),
+    getActiveAnnouncement(),
   ]);
 
   const materialViews: MaterialView[] = materials.map((material) => ({
@@ -80,6 +83,7 @@ export default async function WeekPage({
 
   return (
     <>
+      <AnnouncementBanner announcement={announcement} />
       <SiteHeader isAdmin={admin} />
 
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-7 px-6 py-8">

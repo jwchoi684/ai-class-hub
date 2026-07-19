@@ -187,3 +187,32 @@ export async function checkOrderNoAction(orderNo: number): Promise<boolean> {
     return false;
   }
 }
+
+/** 공지 배너 교체. 빈 값이면 배너를 내립니다. */
+export async function setAnnouncementAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+
+    const body = cleanText(formData.get("body"), 500);
+    const linkRaw = cleanText(formData.get("linkUrl"), 2048);
+
+    let linkUrl: string | null = null;
+    if (linkRaw) {
+      const { isSafeExternalUrl } = await import("@/lib/net/url-safety");
+      const verdict = isSafeExternalUrl(linkRaw);
+      if (!verdict.ok) return { ok: false, message: verdict.reason };
+      linkUrl = verdict.normalized;
+    }
+
+    const { setAnnouncement } = await import("@/lib/db/announcements");
+    await setAnnouncement(body, linkUrl);
+
+    // 배너는 모든 화면 위에 있으므로 전부 다시 그려야 합니다.
+    revalidatePath("/", "layout");
+    return { ok: true };
+  } catch (error) {
+    return toActionError(error);
+  }
+}

@@ -11,6 +11,8 @@ import { SiteHeader } from "@/components/site-header";
 import { LoginForm } from "./login-form";
 import { LogoutButtons } from "./logout-buttons";
 import { SessionManager } from "./session-manager";
+import { AnnouncementEditor } from "./announcement-editor";
+import { getActiveAnnouncement } from "@/lib/db/announcements";
 
 /** argon2 · Node 전용 모듈을 쓰므로 Edge 로 떨어지면 안 됩니다. */
 export const runtime = "nodejs";
@@ -39,6 +41,8 @@ export default async function AdminPage() {
       suggestNextOrderNo(),
     ]);
 
+  const announcement = await getActiveAnnouncement();
+
   const active = sessions ?? [];
 
   const managed = classSessions.map((session) => ({
@@ -57,6 +61,11 @@ export default async function AdminPage() {
           사이트 전체에서 편집 컨트롤이 보입니다
         </span>
       </div>
+
+      <AnnouncementEditor
+        initialBody={announcement?.body ?? ""}
+        initialLink={announcement?.linkUrl ?? ""}
+      />
 
       <SessionManager sessions={managed} suggestedOrderNo={suggestedOrderNo} />
 
@@ -88,10 +97,21 @@ export default async function AdminPage() {
         <LogoutButtons activeSessions={active.length} />
       </section>
 
-      <section className="rounded-xl border border-dashed border-line p-5">
-        <p className="text-xs text-muted">
-          자료 업로드와 공지 편집은 다음 단계에서 여기에 붙습니다.
-        </p>
+      <section className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface p-5">
+        <span className="flex flex-1 flex-col gap-0.5">
+          <b className="text-sm font-bold tracking-tight">QR 접속 화면</b>
+          <span className="text-xs text-muted">
+            수업 시작 때 프로젝터에 띄우면 수강생이 주소를 치지 않고 들어옵니다.
+          </span>
+        </span>
+        <a
+          href="/qr"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-lg bg-accent px-3.5 py-2 text-xs font-semibold text-on-accent"
+        >
+          QR 화면 열기 ↗
+        </a>
       </section>
     </main>
     </>

@@ -18,6 +18,10 @@ export function SiteHeader({ isAdmin = false }: { isAdmin?: boolean }) {
 
         <span className="flex-1" />
 
+        <Link href="/gallery" className="text-xs text-muted">
+          갤러리
+        </Link>
+
         {isAdmin ? (
           <Link
             href="/admin"

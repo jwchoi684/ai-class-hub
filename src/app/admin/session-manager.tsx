@@ -383,7 +383,9 @@ function DeleteConfirm({
           disabled={pending || !matches}
           className="rounded-md bg-danger px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-40"
         >
-          {pending ? "삭제 중…" : "삭제"}
+          {/* 행의 '삭제' 트리거와 구분되는 문구를 씁니다 — 눌렀을 때 무슨 일이
+              일어나는지도 이쪽이 분명합니다. */}
+          {pending ? "삭제 중…" : "영구 삭제"}
         </button>
       </div>
     </div>
