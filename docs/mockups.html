@@ -1,0 +1,896 @@
+<title>AI 수업 허브 — 화면 목업</title>
+
+<style>
+  /* ─── tokens ─────────────────────────────────────────────── */
+  :root {
+    --bg:        #FAFAF9;
+    --surface:   #FFFFFF;
+    --surface-2: #F4F5F3;
+    --border:    #E3E6E2;
+    --border-2:  #D3D7D2;
+    --text:      #171A18;
+    --muted:     #6C726E;
+    --faint:     #9AA09B;
+    --accent:    #1C7A59;
+    --accent-2:  #145C42;
+    --soft:      #E7F2EC;
+    --warn:      #9A6B14;
+    --warn-soft: #FBF2DE;
+    --danger:    #A33A2E;
+    --on-accent: #FFFFFF;
+    --shadow:    0 1px 2px rgba(23,26,24,.05), 0 8px 24px -12px rgba(23,26,24,.14);
+    --shadow-sm: 0 1px 2px rgba(23,26,24,.06);
+    --sans: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard",
+            "Noto Sans KR", "Malgun Gothic", "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, "Cascadia Mono", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0D0F0E; --surface:#161917; --surface-2:#1D211F; --border:#272B29;
+      --border-2:#333835; --text:#E9ECE9; --muted:#8C938E; --faint:#6B726D;
+      --accent:#4CBE90; --accent-2:#6ED0A8; --soft:#122620;
+      --warn:#D9AE5E; --warn-soft:#2A2214; --danger:#E0806F; --on-accent:#08110D;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+      --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0D0F0E; --surface:#161917; --surface-2:#1D211F; --border:#272B29;
+    --border-2:#333835; --text:#E9ECE9; --muted:#8C938E; --faint:#6B726D;
+    --accent:#4CBE90; --accent-2:#6ED0A8; --soft:#122620;
+    --warn:#D9AE5E; --warn-soft:#2A2214; --danger:#E0806F; --on-accent:#08110D;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+  }
+  :root[data-theme="light"] {
+    --bg:#FAFAF9; --surface:#FFFFFF; --surface-2:#F4F5F3; --border:#E3E6E2;
+    --border-2:#D3D7D2; --text:#171A18; --muted:#6C726E; --faint:#9AA09B;
+    --accent:#1C7A59; --accent-2:#145C42; --soft:#E7F2EC;
+    --warn:#9A6B14; --warn-soft:#FBF2DE; --danger:#A33A2E; --on-accent:#FFFFFF;
+    --shadow:0 1px 2px rgba(23,26,24,.05), 0 8px 24px -12px rgba(23,26,24,.14);
+    --shadow-sm:0 1px 2px rgba(23,26,24,.06);
+  }
+
+  /* ─── page ───────────────────────────────────────────────── */
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px; line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 56px 24px 120px; }
+
+  .doc-head { display:flex; flex-direction:column; gap:14px; padding-bottom:32px;
+              border-bottom:1px solid var(--border); margin-bottom:8px; }
+  .eyebrow { font-family:var(--mono); font-size:11px; letter-spacing:.13em;
+             text-transform:uppercase; color:var(--accent); font-weight:600; }
+  .doc-head h1 { font-size:clamp(28px,4.4vw,40px); line-height:1.15; letter-spacing:-.028em;
+                 font-weight:750; text-wrap:balance; margin:0; }
+  .doc-head p { color:var(--muted); max-width:62ch; margin:0; font-size:15.5px; }
+  .meta-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+  .meta-chip { font-family:var(--mono); font-size:11.5px; color:var(--muted);
+               border:1px solid var(--border); border-radius:5px; padding:3px 8px;
+               background:var(--surface); }
+
+  /* screen plate */
+  .plate { margin-top:72px; }
+  .plate-head { display:flex; flex-direction:column; gap:6px; margin-bottom:18px; }
+  .route { font-family:var(--mono); font-size:12px; color:var(--accent);
+           font-weight:600; letter-spacing:.01em; }
+  .plate-head h2 { font-size:21px; letter-spacing:-.018em; font-weight:700; margin:0; }
+  .plate-head .why { color:var(--muted); font-size:14.5px; max-width:70ch; margin:0; }
+
+  .note { display:flex; gap:9px; align-items:flex-start; margin-top:14px;
+          font-size:13.5px; color:var(--muted); max-width:74ch; }
+  .note b { color:var(--text); font-weight:650; }
+  .note::before { content:""; flex:none; width:3px; align-self:stretch;
+                  background:var(--accent); border-radius:2px; opacity:.55; }
+  .note-body { padding:1px 0; }
+
+  /* mock frame */
+  .frame { border:1px solid var(--border-2); border-radius:11px; background:var(--surface);
+           overflow:hidden; box-shadow:var(--shadow); }
+  .frame-bar { display:flex; align-items:center; gap:7px; padding:9px 13px;
+               background:var(--surface-2); border-bottom:1px solid var(--border); }
+  .dot { width:9px; height:9px; border-radius:50%; background:var(--border-2); flex:none; }
+  .frame-url { font-family:var(--mono); font-size:11px; color:var(--faint);
+               margin-left:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .frame-body { padding:0; }
+
+  .pair { display:grid; grid-template-columns:1fr 300px; gap:24px; align-items:start; }
+  @media (max-width:900px){ .pair { grid-template-columns:1fr; } }
+
+  .phone { border:1px solid var(--border-2); border-radius:22px; overflow:hidden;
+           background:var(--surface); box-shadow:var(--shadow); }
+  .phone-notch { height:22px; background:var(--surface-2); border-bottom:1px solid var(--border);
+                 display:flex; align-items:center; justify-content:center; }
+  .phone-notch span { width:52px; height:5px; border-radius:3px; background:var(--border-2); }
+  .phone-cap { font-family:var(--mono); font-size:11px; color:var(--faint);
+               text-align:center; margin-top:9px; }
+
+  /* ─── mocked app UI (scoped to .frame / .phone) ──────────── */
+  .frame *, .phone * { box-sizing:border-box; }
+
+  .app-notice { display:flex; align-items:center; gap:10px; padding:9px 18px;
+                background:var(--soft); border-bottom:1px solid var(--border);
+                font-size:13px; color:var(--text); }
+  .app-notice .pin { color:var(--accent); }
+  .app-notice .x { margin-left:auto; color:var(--faint); font-size:14px; }
+
+  .app-nav { display:flex; align-items:center; padding:13px 18px;
+             border-bottom:1px solid var(--border); gap:18px; }
+  .app-brand { font-weight:700; font-size:14.5px; letter-spacing:-.012em; }
+  .app-nav .sp { flex:1; }
+  .app-nav a { font-size:13px; color:var(--muted); text-decoration:none; }
+  .app-nav a.on { color:var(--text); font-weight:600; }
+  .app-nav .adm { font-size:11.5px; color:var(--faint); }
+
+  .app-main { padding:22px 18px 26px; display:flex; flex-direction:column; gap:22px; }
+  .sec-head { display:flex; align-items:baseline; gap:10px; }
+  .sec-head h3 { font-size:14px; font-weight:700; letter-spacing:-.008em; margin:0; }
+  .sec-head .cnt { font-family:var(--mono); font-size:11.5px; color:var(--faint); }
+  .sec-head .more { margin-left:auto; font-size:12px; color:var(--accent); font-weight:600; }
+
+  /* hero week card */
+  .hero { border:1px solid var(--border); border-radius:10px; padding:18px;
+          background:var(--surface-2); display:flex; gap:18px; align-items:center; }
+  .hero .num { font-family:var(--mono); font-size:34px; font-weight:700; color:var(--accent);
+               line-height:1; letter-spacing:-.03em; }
+  .hero .txt { flex:1; display:flex; flex-direction:column; gap:3px; }
+  .hero .lbl { font-family:var(--mono); font-size:10.5px; letter-spacing:.1em;
+               text-transform:uppercase; color:var(--accent); font-weight:600; }
+  .hero h4 { font-size:16px; font-weight:700; letter-spacing:-.014em; margin:0; }
+  .hero p { font-size:13px; color:var(--muted); margin:0; }
+  .btn { display:inline-flex; align-items:center; gap:6px; background:var(--accent);
+         color:var(--on-accent); border-radius:7px; padding:8px 14px; font-size:13px;
+         font-weight:600; white-space:nowrap; }
+  .btn-ghost { background:transparent; color:var(--text); border:1px solid var(--border-2);
+               border-radius:7px; padding:7px 13px; font-size:12.5px; font-weight:600;
+               display:inline-flex; align-items:center; gap:6px; }
+
+  .weeks { display:grid; grid-template-columns:repeat(3,1fr); gap:11px; }
+  .wk { border:1px solid var(--border); border-radius:9px; padding:14px;
+        display:flex; flex-direction:column; gap:5px; background:var(--surface); }
+  .wk .n { font-family:var(--mono); font-size:11px; color:var(--faint); font-weight:600; }
+  .wk h5 { font-size:13.5px; font-weight:650; letter-spacing:-.01em; margin:0; line-height:1.4; }
+  .wk .sub { font-family:var(--mono); font-size:11px; color:var(--faint); }
+  .wk.draft { opacity:.55; border-style:dashed; }
+  .wk.add { border-style:dashed; align-items:center; justify-content:center;
+            color:var(--faint); font-size:12.5px; min-height:86px; }
+
+  /* gallery cards */
+  .grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:11px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:11px; }
+  .card { border:1px solid var(--border); border-radius:9px; overflow:hidden;
+          background:var(--surface); display:flex; flex-direction:column; }
+  .thumb { aspect-ratio:16/10; position:relative; display:flex; align-items:flex-end;
+           padding:9px; overflow:hidden; }
+  .thumb .dom { font-family:var(--mono); font-size:10px; color:#fff; font-weight:600;
+                background:rgba(0,0,0,.34); padding:2px 6px; border-radius:4px;
+                backdrop-filter:blur(3px); }
+  .thumb .ext { position:absolute; top:7px; right:7px; font-size:10px; color:#fff;
+                background:rgba(0,0,0,.34); border-radius:4px; padding:1px 5px;
+                backdrop-filter:blur(3px); }
+  .card-b { padding:10px 11px 11px; display:flex; flex-direction:column; gap:5px; }
+  .card-b h6 { font-size:12.5px; font-weight:650; line-height:1.4; margin:0;
+               letter-spacing:-.008em; }
+  .card-b .who { font-family:var(--mono); font-size:10.5px; color:var(--faint); }
+  .card-b .tags { display:flex; gap:4px; flex-wrap:wrap; }
+  .tag { font-size:10px; color:var(--muted); background:var(--surface-2);
+         border:1px solid var(--border); border-radius:4px; padding:1px 5px; }
+  .card-b .rx { display:flex; gap:9px; font-family:var(--mono); font-size:10.5px;
+                color:var(--faint); margin-top:1px; }
+
+  /* filter bar */
+  .filters { display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+             padding-bottom:14px; border-bottom:1px solid var(--border); }
+  .chip { font-size:12px; border:1px solid var(--border); border-radius:99px;
+          padding:4px 11px; color:var(--muted); background:var(--surface); white-space:nowrap; }
+  .chip.on { background:var(--accent); border-color:var(--accent);
+             color:var(--on-accent); font-weight:600; }
+  .search { margin-left:auto; display:flex; align-items:center; gap:6px;
+            border:1px solid var(--border); border-radius:7px; padding:5px 10px;
+            font-size:12px; color:var(--faint); min-width:150px; background:var(--surface); }
+
+  /* material rows */
+  .mats { display:flex; flex-direction:column; border:1px solid var(--border);
+          border-radius:9px; overflow:hidden; }
+  .mat { display:flex; align-items:center; gap:11px; padding:12px 14px;
+         border-bottom:1px solid var(--border); }
+  .mat:last-child { border-bottom:none; }
+  .mat .ico { width:28px; height:28px; border-radius:6px; background:var(--surface-2);
+              display:flex; align-items:center; justify-content:center; font-size:13px;
+              flex:none; border:1px solid var(--border); }
+  .mat .t { flex:1; display:flex; flex-direction:column; gap:1px; min-width:0; }
+  .mat .t b { font-size:13px; font-weight:600; letter-spacing:-.008em; }
+  .mat .t span { font-family:var(--mono); font-size:10.5px; color:var(--faint); }
+  .mat .act { font-size:12px; color:var(--muted); }
+
+  /* detail split */
+  .split { display:grid; grid-template-columns:1.25fr 1fr; gap:18px; }
+  .media { border:1px solid var(--border); border-radius:9px; overflow:hidden;
+           aspect-ratio:16/10; display:flex; align-items:center; justify-content:center; }
+  .info { display:flex; flex-direction:column; gap:13px; }
+  .info h4 { font-size:16.5px; font-weight:700; letter-spacing:-.016em; margin:0; }
+  .byline { display:flex; align-items:center; gap:8px; }
+  .avt { width:26px; height:26px; border-radius:50%; background:var(--accent);
+         color:var(--on-accent); display:flex; align-items:center; justify-content:center;
+         font-size:11px; font-weight:700; flex:none; }
+  .byline .m { font-family:var(--mono); font-size:11px; color:var(--faint); }
+  .info p.desc { font-size:13px; color:var(--muted); margin:0; line-height:1.6; }
+  .rxrow { display:flex; gap:7px; }
+  .rx-btn { border:1px solid var(--border); border-radius:99px; padding:5px 11px;
+            font-size:12px; display:flex; gap:5px; align-items:center; background:var(--surface); }
+  .rx-btn.on { border-color:var(--accent); background:var(--soft); color:var(--accent);
+               font-weight:650; }
+  .cmts { display:flex; flex-direction:column; gap:11px; padding-top:13px;
+          border-top:1px solid var(--border); }
+  .cmt { display:flex; gap:8px; }
+  .cmt .avt { width:22px; height:22px; font-size:9.5px; }
+  .cmt .cb { display:flex; flex-direction:column; gap:1px; }
+  .cmt .cb b { font-size:12px; font-weight:650; }
+  .cmt .cb .tm { font-family:var(--mono); font-size:10px; color:var(--faint); }
+  .cmt .cb p { font-size:12.5px; color:var(--muted); margin:0; line-height:1.55; }
+
+  /* form */
+  .form { display:flex; flex-direction:column; gap:15px; }
+  .seg { display:flex; gap:0; border:1px solid var(--border); border-radius:8px;
+         overflow:hidden; width:fit-content; }
+  .seg div { padding:7px 16px; font-size:12.5px; color:var(--muted); }
+  .seg div.on { background:var(--accent); color:var(--on-accent); font-weight:650; }
+  .fld { display:flex; flex-direction:column; gap:5px; }
+  .fld label { font-size:11.5px; font-weight:650; color:var(--muted); }
+  .inp { border:1px solid var(--border); border-radius:7px; padding:9px 11px;
+         font-size:13px; color:var(--text); background:var(--surface); }
+  .inp.ph { color:var(--faint); }
+  .prev { display:flex; gap:11px; border:1px solid var(--border); border-radius:8px;
+          padding:11px; background:var(--surface-2); align-items:center; }
+  .prev .pthumb { width:88px; aspect-ratio:16/10; border-radius:6px; flex:none;
+                  overflow:hidden; }
+  .prev .pt { display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .prev .pt b { font-size:12.5px; font-weight:650; }
+  .prev .pt span { font-size:11.5px; color:var(--muted); line-height:1.5; }
+  .divider { height:1px; background:var(--border); }
+  .pinrow { display:flex; gap:7px; }
+  .pinbox { width:38px; height:44px; border:1px solid var(--border); border-radius:7px;
+            display:flex; align-items:center; justify-content:center;
+            font-family:var(--mono); font-size:17px; font-weight:600; background:var(--surface); }
+  .help { font-size:11.5px; color:var(--faint); line-height:1.55; }
+  .chk { display:flex; gap:8px; align-items:flex-start; font-size:12px; color:var(--muted); }
+  .box { width:15px; height:15px; border:1.5px solid var(--accent); border-radius:4px;
+         flex:none; margin-top:2px; display:flex; align-items:center; justify-content:center;
+         color:var(--accent); font-size:10px; font-weight:800; }
+  .consent { background:var(--warn-soft); border:1px solid var(--border);
+             border-radius:8px; padding:11px 12px; display:flex; flex-direction:column; gap:8px; }
+  .consent .cw { font-size:11.5px; color:var(--warn); line-height:1.55; }
+
+  /* qr */
+  .qr-screen { padding:34px 22px; display:flex; flex-direction:column;
+               align-items:center; gap:15px; text-align:center; }
+  .qr-top { font-size:13px; color:var(--muted); }
+  .qr-top b { color:var(--text); font-weight:700; }
+  #qrc { border-radius:9px; display:block; }
+  .qr-url { font-family:var(--mono); font-size:19px; font-weight:600; letter-spacing:-.01em; }
+  .qr-foot { font-size:12px; color:var(--muted); background:var(--soft);
+             border-radius:7px; padding:6px 13px; }
+  .qr-ctl { display:flex; gap:6px; margin-top:3px; }
+
+  /* admin */
+  .adm-grid { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
+  .panel { border:1px solid var(--border); border-radius:9px; padding:14px;
+           display:flex; flex-direction:column; gap:10px; background:var(--surface); }
+  .panel h5 { font-size:12.5px; font-weight:700; margin:0; letter-spacing:-.006em; }
+  .adm-banner { display:flex; align-items:center; gap:9px; padding:9px 14px;
+                background:var(--soft); border-bottom:1px solid var(--border); font-size:12.5px; }
+  .adm-banner .lft { color:var(--accent); font-weight:650; }
+  .adm-banner .r { margin-left:auto; display:flex; gap:6px; }
+  table.tbl { width:100%; border-collapse:collapse; font-size:12px; }
+  table.tbl th { text-align:left; font-size:10.5px; font-weight:650; color:var(--faint);
+                 padding:6px 8px; border-bottom:1px solid var(--border);
+                 text-transform:uppercase; letter-spacing:.06em; font-family:var(--mono); }
+  table.tbl td { padding:8px; border-bottom:1px solid var(--border);
+                 font-variant-numeric:tabular-nums; }
+  table.tbl tr:last-child td { border-bottom:none; }
+  .pill { font-size:10.5px; border-radius:99px; padding:2px 8px; font-weight:650;
+          border:1px solid var(--border); color:var(--muted); }
+  .pill.live { background:var(--soft); color:var(--accent); border-color:transparent; }
+  .bar { height:7px; border-radius:99px; background:var(--surface-2);
+         overflow:hidden; border:1px solid var(--border); }
+  .bar i { display:block; height:100%; background:var(--accent); }
+
+  /* mobile mock */
+  .m-body { padding:12px; display:flex; flex-direction:column; gap:12px; }
+  .m-nav { display:flex; align-items:center; padding:11px 13px;
+           border-bottom:1px solid var(--border); gap:9px; }
+  .m-nav b { font-size:13px; font-weight:700; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .m-tabs { display:flex; border-top:1px solid var(--border); }
+  .m-tabs div { flex:1; text-align:center; padding:9px 0 12px; font-size:10.5px;
+                color:var(--faint); }
+  .m-tabs div.on { color:var(--accent); font-weight:650; }
+  .m-tabs .ic { font-size:14px; display:block; line-height:1.5; }
+  .fab { position:absolute; right:13px; bottom:60px; width:42px; height:42px;
+         border-radius:50%; background:var(--accent); color:var(--on-accent);
+         display:flex; align-items:center; justify-content:center; font-size:20px;
+         box-shadow:var(--shadow); }
+  .phone-rel { position:relative; }
+
+  /* legend */
+  .legend { margin-top:80px; padding-top:28px; border-top:1px solid var(--border); }
+  .legend h2 { font-size:19px; font-weight:700; letter-spacing:-.018em; margin:0 0 14px; }
+  .legend ul { margin:0; padding-left:19px; display:flex; flex-direction:column; gap:9px; }
+  .legend li { font-size:14px; color:var(--muted); max-width:72ch; }
+  .legend li b { color:var(--text); font-weight:650; }
+
+  @media (max-width:760px){
+    .weeks, .grid4 { grid-template-columns:repeat(2,1fr); }
+    .grid3 { grid-template-columns:repeat(2,1fr); }
+    .split, .adm-grid { grid-template-columns:1fr; }
+    .hero { flex-direction:column; align-items:flex-start; }
+    .wrap { padding:36px 16px 80px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="doc-head">
+    <div class="eyebrow">화면 목업 · 구현 전 검토용</div>
+    <h1>AI 수업 허브</h1>
+    <p>인터뷰로 확정된 12개 요구사항과 병렬 검증 결과를 화면으로 옮긴 것입니다. 실제 데이터가 아니라 배치·정보 위계·마찰 지점을 보기 위한 목업입니다.</p>
+    <div class="meta-row">
+      <span class="meta-chip">로그인 없음</span>
+      <span class="meta-chip">단일 클래스 · 회차별</span>
+      <span class="meta-chip">운영자 비번 1개</span>
+      <span class="meta-chip">닉네임 + PIN</span>
+      <span class="meta-chip">Hobby 무료 티어</span>
+    </div>
+  </header>
+
+  <!-- ══ 홈 ══ -->
+  <section class="plate">
+    <div class="plate-head">
+      <div class="route">/</div>
+      <h2>홈 — 회차 허브</h2>
+      <p class="why">랜딩이 없으므로 접속 즉시 “이번 주에 뭘 하고 무슨 자료가 있는지”와 “요즘 다들 뭘 만들었는지”가 한 화면에 잡혀야 합니다.</p>
+    </div>
+
+    <div class="frame">
+      <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="frame-url">ai-class.vercel.app</span></div>
+      <div class="frame-body">
+        <div class="app-notice">
+          <span class="pin">📌</span>
+          <span><b style="font-weight:650">8/12(수) 3주차</b> — 노트북·크롬 설치 필수. 실습용 Colab 링크는 자료에 올려뒀어요.</span>
+          <span class="x">✕</span>
+        </div>
+        <nav class="app-nav">
+          <span class="app-brand">AI 실전 클래스</span>
+          <span class="sp"></span>
+          <a href="#" class="on">갤러리</a>
+          <a href="#" class="adm">관리자</a>
+        </nav>
+        <div class="app-main">
+
+          <div class="hero">
+            <div class="num">03</div>
+            <div class="txt">
+              <div class="lbl">이번 주차</div>
+              <h4>프롬프트 엔지니어링 기초</h4>
+              <p>역할 지정, 예시 제공, 단계 분해까지. 실습은 Colab에서 진행합니다.</p>
+            </div>
+            <span class="btn">자료 보러가기 →</span>
+          </div>
+
+          <div>
+            <div class="sec-head"><h3>전체 회차</h3><span class="cnt">4</span></div>
+            <div class="weeks" style="margin-top:11px">
+              <div class="wk"><span class="n">01</span><h5>AI 도구 둘러보기</h5><span class="sub">7/29 · 자료 3 · 결과물 12</span></div>
+              <div class="wk"><span class="n">02</span><h5>프롬프트 기초</h5><span class="sub">8/5 · 자료 4 · 결과물 9</span></div>
+              <div class="wk"><span class="n">03</span><h5>프롬프트 엔지니어링 기초</h5><span class="sub">8/12 · 자료 5 · 결과물 7</span></div>
+              <div class="wk draft"><span class="n">04</span><h5>나만의 랜딩페이지 만들기</h5><span class="sub">8/19 · 준비 중</span></div>
+              <div class="wk add">＋ 새 회차 추가</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="sec-head"><h3>최근 결과물</h3><span class="cnt">42</span><span class="more">갤러리 전체 보기 →</span></div>
+            <div class="grid4" style="margin-top:11px">
+              <div class="card">
+                <div class="thumb" style="background:linear-gradient(135deg,#2E5E8C,#57A0A8)"><span class="ext">↗</span><span class="dom">cafe-pick.vercel.app</span></div>
+                <div class="card-b"><h6>카페 메뉴 추천 사이트</h6><span class="who">주희 · 3주차</span><div class="rx">♥ 8<span>💬 3</span></div></div>
+              </div>
+              <div class="card">
+                <div class="thumb" style="background:linear-gradient(135deg,#6E4B8E,#B0729B)"><span class="dom">이미지</span></div>
+                <div class="card-b"><h6>회의록 요약 도구 화면</h6><span class="who">민수 · 3주차</span><div class="rx">♥ 5<span>💬 1</span></div></div>
+              </div>
+              <div class="card">
+                <div class="thumb" style="background:linear-gradient(135deg,#1F7A5C,#7BB88A)"><span class="ext">↗</span><span class="dom">mydog-intro.netlify.app</span></div>
+                <div class="card-b"><h6>우리 강아지 소개 페이지</h6><span class="who">지연 · 2주차</span><div class="rx">♥ 12<span>💬 4</span></div></div>
+              </div>
+              <div class="card">
+                <div class="thumb" style="background:linear-gradient(135deg,#8C5A2B,#C99A54)"><span class="ext">↗</span><span class="dom">colab.research.google.com</span></div>
+                <div class="card-b"><h6>영화 리뷰 감정 분석 노트북</h6><span class="who">태호 · 3주차</span><div class="rx">♥ 4<span>💬 0</span></div></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="note"><div class="note-body">강사와 수강생이 <b>같은 URL</b>로 들어옵니다. 위 화면은 관리자 모드가 켜진 상태 — 점선 <b>＋ 새 회차 추가</b> 카드와 흐린 <b>04 준비 중</b> 회차가 그때만 보입니다. 수강생에게는 헤더 끝의 작은 <b>관리자</b> 링크 하나만 노출됩니다.</div></div>
+  </section>
+
+  <!-- ══ 회차 상세 ══ -->
+  <section class="plate">
+    <div class="plate-head">
+      <div class="route">/weeks/3</div>
+      <h2>회차 상세 — 자료와 결과물을 붙여 놓기</h2>
+      <p class="why">“배운 것 → 만든 것”이 한 페이지에서 이어지도록 자료 리스트 아래에 그 회차 결과물을 바로 둡니다.</p>
+    </div>
+
+    <div class="frame">
+      <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="frame-url">ai-class.vercel.app/weeks/3</span></div>
+      <div class="frame-body">
+        <nav class="app-nav"><span class="app-brand">AI 실전 클래스</span><span class="sp"></span><a href="#">갤러리</a><a href="#" class="adm">관리자</a></nav>
+        <div class="app-main">
+          <div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--faint);margin-bottom:7px">← 전체 회차</div>
+            <h3 style="font-size:19px;font-weight:700;letter-spacing:-.02em;margin:0 0 3px">3주차 · 프롬프트 엔지니어링 기초</h3>
+            <p style="font-size:13px;color:var(--muted);margin:0">2026년 8월 12일 (수) · 역할 지정, 예시 제공, 단계 분해</p>
+          </div>
+
+          <div style="display:flex;gap:7px">
+            <span class="btn-ghost">＋ 파일 업로드</span>
+            <span class="btn-ghost">＋ 링크 추가</span>
+          </div>
+
+          <div class="mats">
+            <div class="mat"><div class="ico">🔗</div><div class="t"><b>3주차 강의 슬라이드</b><span>slides-week3.vercel.app · HTML 슬라이드</span></div><span class="act">열기 ↗</span></div>
+            <div class="mat"><div class="ico">📄</div><div class="t"><b>프롬프트 패턴 치트시트.pdf</b><span>PDF · 2.4MB · 8/11 업로드</span></div><span class="act">열기 · ⬇</span></div>
+            <div class="mat"><div class="ico">🔗</div><div class="t"><b>실습 가이드 (Notion)</b><span>notion.so</span></div><span class="act">열기 ↗</span></div>
+            <div class="mat"><div class="ico">🔗</div><div class="t"><b>실습용 Colab 노트북</b><span>colab.research.google.com</span></div><span class="act">열기 ↗</span></div>
+            <div class="mat"><div class="ico">📄</div><div class="t"><b>과제 안내.pdf</b><span>PDF · 340KB · 8/12 업로드</span></div><span class="act">열기 · ⬇</span></div>
+          </div>
+
+          <div>
+            <div class="sec-head"><h3>3주차 결과물</h3><span class="cnt">7</span><span class="more">갤러리에서 보기 →</span></div>
+            <div class="grid3" style="margin-top:11px">
+              <div class="card">
+                <div class="thumb" style="background:linear-gradient(135deg,#2E5E8C,#57A0A8)"><span class="ext">↗</span><span class="dom">cafe-pick.vercel.app</span></div>
+                <div class="card-b"><h6>카페 메뉴 추천 사이트</h6><span class="who">주희</span></div>
+              </div>
+              <div class="card">
+                <div class="thumb" style="background:linear-gradient(135deg,#6E4B8E,#B0729B)"><span class="dom">이미지</span></div>
+                <div class="card-b"><h6>회의록 요약 도구 화면</h6><span class="who">민수</span></div>
+              </div>
+              <div class="card">
+                <div class="thumb" style="background:linear-gradient(135deg,#8C5A2B,#C99A54)"><span class="ext">↗</span><span class="dom">colab.research.google.com</span></div>
+                <div class="card-b"><h6>영화 리뷰 감정 분석 노트북</h6><span class="who">태호</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note"><div class="note-body">슬라이드가 <b>HTML 배포 주소</b>라 첫 행처럼 링크 항목으로 들어갑니다. 파일과 링크를 한 리스트에 섞고 아이콘으로만 구분해서, 강사가 순서를 하나의 리스트로 관리할 수 있게 했습니다.</div></div>
+  </section>
+
+  <!-- ══ 갤러리 ══ -->
+  <section class="plate">
+    <div class="plate-head">
+      <div class="route">/gallery</div>
+      <h2>결과물 갤러리 — 이 앱의 시각적 중심</h2>
+      <p class="why">필터·검색의 정본 화면. 상태는 전부 URL에 실려서 단톡방에 그대로 공유됩니다.</p>
+    </div>
+
+    <div class="frame">
+      <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="frame-url">ai-class.vercel.app/gallery?week=3&amp;sort=hot</span></div>
+      <div class="frame-body">
+        <nav class="app-nav"><span class="app-brand">AI 실전 클래스</span><span class="sp"></span><a href="#" class="on">갤러리</a><a href="#" class="adm">관리자</a></nav>
+        <div class="app-main">
+          <div style="display:flex;align-items:baseline;gap:9px">
+            <h3 style="font-size:18px;font-weight:700;letter-spacing:-.02em;margin:0">결과물 갤러리</h3>
+            <span style="font-family:var(--mono);font-size:12px;color:var(--faint)">42개</span>
+            <span style="flex:1"></span>
+            <span class="btn">＋ 결과물 올리기</span>
+          </div>
+
+          <div class="filters">
+            <span class="chip">전체</span>
+            <span class="chip">1주차</span>
+            <span class="chip">2주차</span>
+            <span class="chip on">3주차</span>
+            <span class="chip">태그 ▾</span>
+            <span class="chip">반응 많은 순 ▾</span>
+            <span class="search">🔍 제목·닉네임 검색</span>
+          </div>
+
+          <div class="grid4">
+            <div class="card">
+              <div class="thumb" style="background:linear-gradient(135deg,#1F7A5C,#7BB88A)"><span class="ext">↗</span><span class="dom">mydog-intro.netlify.app</span></div>
+              <div class="card-b"><h6>우리 강아지 소개 페이지</h6><span class="who">지연 · 3주차</span>
+                <div class="tags"><span class="tag">랜딩페이지</span><span class="tag">반응형</span></div>
+                <div class="rx">♥ 12<span>💬 4</span></div></div>
+            </div>
+            <div class="card">
+              <div class="thumb" style="background:linear-gradient(135deg,#2E5E8C,#57A0A8)"><span class="ext">↗</span><span class="dom">cafe-pick.vercel.app</span></div>
+              <div class="card-b"><h6>카페 메뉴 추천 사이트</h6><span class="who">주희 · 3주차</span>
+                <div class="tags"><span class="tag">추천시스템</span><span class="tag">+2</span></div>
+                <div class="rx">♥ 8<span>💬 3</span></div></div>
+            </div>
+            <div class="card">
+              <div class="thumb" style="background:linear-gradient(135deg,#6E4B8E,#B0729B)"><span class="dom">이미지</span></div>
+              <div class="card-b"><h6>회의록 요약 도구 화면</h6><span class="who">민수 · 3주차</span>
+                <div class="tags"><span class="tag">자동화</span></div>
+                <div class="rx">♥ 5<span>💬 1</span></div></div>
+            </div>
+            <div class="card">
+              <div class="thumb" style="background:linear-gradient(135deg,#8C5A2B,#C99A54)"><span class="ext">↗</span><span class="dom">colab.research.google.com</span></div>
+              <div class="card-b"><h6>영화 리뷰 감정 분석 노트북</h6><span class="who">태호 · 3주차</span>
+                <div class="tags"><span class="tag">데이터분석</span></div>
+                <div class="rx">♥ 4<span>💬 0</span></div></div>
+            </div>
+            <div class="card">
+              <div class="thumb" style="background:linear-gradient(135deg,#374B7A,#6F84B8)"><span class="ext">↗</span><span class="dom">recipe-ai.vercel.app</span></div>
+              <div class="card-b"><h6>냉장고 재료로 레시피 찾기</h6><span class="who">은비 · 3주차</span>
+                <div class="tags"><span class="tag">랜딩페이지</span></div>
+                <div class="rx">♥ 6<span>💬 2</span></div></div>
+            </div>
+            <div class="card">
+              <div class="thumb" style="background:linear-gradient(135deg,#7A3B4E,#C2798A)"><span class="dom">이미지</span></div>
+              <div class="card-b"><h6>프롬프트 실험 비교표</h6><span class="who">현우 · 3주차</span>
+                <div class="tags"><span class="tag">프롬프트</span></div>
+                <div class="rx">♥ 9<span>💬 5</span></div></div>
+            </div>
+            <div class="card">
+              <div class="thumb" style="background:linear-gradient(135deg,#2A6E6E,#68AFAA)"><span class="ext">↗</span><span class="dom">study-timer.vercel.app</span></div>
+              <div class="card-b"><h6>집중 타이머 웹앱</h6><span class="who">서영 · 3주차</span>
+                <div class="tags"><span class="tag">웹앱</span></div>
+                <div class="rx">♥ 3<span>💬 1</span></div></div>
+            </div>
+            <div class="card">
+              <div class="thumb" style="background:linear-gradient(135deg,#55606E,#93A0AE)"><span class="ext">↗</span><span class="dom">my-first-site.vercel.app</span></div>
+              <div class="card-b"><h6>첫 포트폴리오 사이트</h6><span class="who">동현 · 3주차</span>
+                <div class="tags"><span class="tag">포트폴리오</span></div>
+                <div class="rx">♥ 2<span>💬 0</span></div></div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center"><span class="btn-ghost">더 보기</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note"><div class="note-body">썸네일이 전부 <b>그라데이션 폴백 카드</b>입니다 — 이게 기본 상태라고 보고 설계했습니다. 수강생이 만들 링크(첫 Vercel 배포, Colab, Notion)의 절반 이상은 쓸만한 OG 이미지가 없습니다. 색은 주소를 해시해서 결정하므로 같은 사이트는 항상 같은 색이고, 도메인이 썸네일 위에 찍혀 무엇인지 구분됩니다. <b>회색 빈 박스 벽이 되지 않는 것</b>이 이 화면의 성패입니다.</div></div>
+  </section>
+
+  <!-- ══ 상세 ══ -->
+  <section class="plate">
+    <div class="plate-head">
+      <div class="route">/gallery/[id]</div>
+      <h2>결과물 상세 — 반응과 피드백</h2>
+      <p class="why">이모지 반응은 닉네임·PIN 없이 즉시 눌립니다. 댓글도 PIN을 받지 않습니다 — 피드백에 마찰을 두는 건 가장 아까운 선택입니다.</p>
+    </div>
+
+    <div class="frame">
+      <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="frame-url">ai-class.vercel.app/gallery/a3f9…</span></div>
+      <div class="frame-body">
+        <nav class="app-nav"><span class="app-brand">AI 실전 클래스</span><span class="sp"></span><a href="#" class="on">갤러리</a><a href="#" class="adm">관리자</a></nav>
+        <div class="app-main">
+          <div class="split">
+            <div class="media" style="background:linear-gradient(135deg,#1F7A5C,#7BB88A);flex-direction:column;gap:11px">
+              <div style="font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.86)">mydog-intro.netlify.app</div>
+              <div style="background:rgba(255,255,255,.94);color:#14251E;border-radius:7px;padding:8px 15px;font-size:12.5px;font-weight:650">사이트 열기 ↗</div>
+            </div>
+            <div class="info">
+              <div>
+                <h4>우리 강아지 소개 페이지</h4>
+                <div class="byline" style="margin-top:7px">
+                  <span class="avt">지</span>
+                  <span style="font-size:12.5px;font-weight:600">지연</span>
+                  <span class="m">8/13 · 3주차</span>
+                </div>
+              </div>
+              <div class="tags" style="display:flex;gap:4px"><span class="tag">랜딩페이지</span><span class="tag">반응형</span></div>
+              <p class="desc">배운 프롬프트 패턴으로 소개 문구를 뽑고, 사진은 직접 찍은 걸 넣었어요. 모바일에서 레이아웃 깨지는 걸 고치는 데 제일 오래 걸렸습니다.</p>
+              <div class="rxrow">
+                <span class="rx-btn on">❤️ 12</span>
+                <span class="rx-btn">🔥 3</span>
+                <span class="rx-btn">👏 5</span>
+                <span class="rx-btn">😮 1</span>
+              </div>
+              <div class="cmts">
+                <div class="cmt"><span class="avt">주</span><div class="cb"><b>주희</b> <span class="tm">2시간 전</span><p>모바일에서도 안 깨지네요! 사진 배치가 특히 좋아요.</p></div></div>
+                <div class="cmt"><span class="avt">민</span><div class="cb"><b>민수</b> <span class="tm">1시간 전</span><p>소개 문구 뽑을 때 쓴 프롬프트도 공유해주실 수 있나요?</p></div></div>
+                <div class="inp ph" style="margin-top:2px">피드백을 남겨주세요…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note"><div class="note-body">반응 4종(❤️🔥👏😮)으로 고정했습니다. 종류가 많으면 모바일에서 44px 터치 타깃을 유지하기 어렵고, 카운트가 흩어져 “반응 많은 순” 정렬이 흐릿해집니다. 중복은 서버가 <b>서명된 방문자 쿠키</b>로 막습니다 — IP로 막으면 같은 강의실 와이파이에서 수강생끼리 서로의 반응을 차단해버립니다.</div></div>
+  </section>
+
+  <!-- ══ 게시 폼 ══ -->
+  <section class="plate">
+    <div class="plate-head">
+      <div class="route">/gallery/new</div>
+      <h2>결과물 올리기 — 마찰을 한 블록에 몰기</h2>
+      <p class="why">닉네임·PIN을 폼 맨 아래 한 덩어리로 몰고, 두 번째 게시부터는 자동으로 채워져 사실상 마찰이 사라지게 합니다.</p>
+    </div>
+
+    <div class="pair">
+      <div class="frame">
+        <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="frame-url">ai-class.vercel.app/gallery/new</span></div>
+        <div class="frame-body">
+          <div class="app-main">
+            <h3 style="font-size:16px;font-weight:700;letter-spacing:-.018em;margin:0">결과물 올리기</h3>
+            <div class="form">
+              <div class="seg"><div class="on">🔗 웹사이트 링크</div><div>🖼 이미지</div></div>
+
+              <div class="fld"><label>주소</label><div class="inp">https://cafe-pick.vercel.app</div></div>
+
+              <div class="prev">
+                <div class="pthumb" style="background:linear-gradient(135deg,#2E5E8C,#57A0A8)"></div>
+                <div class="pt">
+                  <b>썸네일을 가져오지 못했어요</b>
+                  <span>주소로 만든 기본 카드를 씁니다. 직접 올리면 더 잘 보여요.</span>
+                  <div style="display:flex;gap:6px;margin-top:5px">
+                    <span class="btn-ghost" style="padding:5px 10px;font-size:11.5px">이미지 선택</span>
+                    <span class="btn-ghost" style="padding:5px 10px;font-size:11.5px">다시 가져오기</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="fld"><label>제목</label><div class="inp">카페 메뉴 추천 사이트</div></div>
+              <div class="fld"><label>한 줄 설명</label><div class="inp ph">어떤 걸 만들었는지 짧게 적어주세요</div></div>
+              <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:11px">
+                <div class="fld"><label>회차</label><div class="inp">3주차 ▾</div></div>
+                <div class="fld"><label>태그</label><div class="inp"><span class="tag">추천시스템</span> <span class="tag">랜딩페이지</span></div></div>
+              </div>
+
+              <div class="consent">
+                <div class="cw">이 결과물은 링크를 아는 누구나 볼 수 있어요. 타인의 얼굴이나 개인정보, API 키가 찍힌 화면은 올리지 말아주세요.</div>
+                <div class="chk"><span class="box">✓</span><span>확인했습니다</span></div>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="fld">
+                <label>내 정보</label>
+                <div style="display:flex;gap:11px;align-items:flex-end;flex-wrap:wrap">
+                  <div style="flex:1;min-width:130px"><div class="inp">주희</div></div>
+                  <div class="pinrow"><span class="pinbox">•</span><span class="pinbox">•</span><span class="pinbox">•</span><span class="pinbox">•</span></div>
+                </div>
+                <div class="help">나중에 수정·삭제할 때 필요해요. 휴대폰 잠금번호와 다른 번호를 써주세요. 잊었다면 강사에게 문의하세요.</div>
+                <div class="chk" style="margin-top:5px"><span class="box">✓</span><span>이 기기에 기억하기</span></div>
+              </div>
+
+              <div style="display:flex;gap:7px"><span class="btn">올리기</span><span class="btn-ghost">취소</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="phone phone-rel">
+          <div class="phone-notch"><span></span></div>
+          <div class="m-nav"><b>결과물 올리기</b></div>
+          <div class="m-body">
+            <div class="seg" style="width:100%"><div style="flex:1;text-align:center">🔗 링크</div><div class="on" style="flex:1;text-align:center">🖼 이미지</div></div>
+            <div style="border:1.5px dashed var(--border-2);border-radius:9px;padding:22px 12px;text-align:center;display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:22px">🖼</div>
+              <div style="font-size:12px;color:var(--muted)">사진을 올려주세요</div>
+              <div style="display:flex;gap:6px;justify-content:center">
+                <span class="btn-ghost" style="padding:5px 11px;font-size:11.5px">사진 선택</span>
+                <span class="btn-ghost" style="padding:5px 11px;font-size:11.5px">📷 카메라</span>
+              </div>
+            </div>
+            <div class="fld"><div class="inp ph" style="font-size:12px">제목</div></div>
+            <div class="fld"><div class="inp" style="font-size:12px">3주차 ▾</div></div>
+            <div class="pinrow" style="justify-content:center"><span class="pinbox">•</span><span class="pinbox">•</span><span class="pinbox">•</span><span class="pinbox">•</span></div>
+            <div class="btn" style="justify-content:center">올리기</div>
+          </div>
+        </div>
+        <div class="phone-cap">모바일 — 기본값이 이미지로 뒤집힘</div>
+      </div>
+    </div>
+
+    <div class="note"><div class="note-body">폰에서는 타입 토글의 기본값이 <b>이미지</b>로 바뀝니다(폰은 사진 업로드가 주 용도). 올린 사진은 브라우저에서 자동으로 줄여 저장하므로 <b>GPS 위치정보가 제거되고, 아이폰 HEIC가 JPEG로 바뀌고, 강의실 와이파이가 버팁니다</b>. [올리기]를 누르면 “PIN 1234로 등록됩니다. 맞나요?”를 한 번 보여줘 오타로 글이 영구히 잠기는 걸 막습니다.</div></div>
+  </section>
+
+  <!-- ══ QR ══ -->
+  <section class="plate">
+    <div class="plate-head">
+      <div class="route">/qr</div>
+      <h2>QR 접속 화면 — 사실상 이 앱의 로그인 화면</h2>
+      <p class="why">로그인이 없으므로 20명을 앱에 진입시키는 유일한 수단입니다. 실습 시간에는 QR 대상을 ‘결과물 올리기’로 바꿉니다.</p>
+    </div>
+
+    <div class="frame">
+      <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="frame-url">ai-class.vercel.app/qr</span></div>
+      <div class="frame-body">
+        <div class="qr-screen">
+          <div class="qr-top"><b>AI 실전 클래스</b> · 3주차 프롬프트 엔지니어링 기초</div>
+          <canvas id="qrc" width="230" height="230" aria-label="접속용 QR 코드 예시"></canvas>
+          <div class="qr-url">ai-class.vercel.app</div>
+          <div class="qr-foot">📌 8/12(수) 3주차 — 노트북·크롬 설치 필수</div>
+          <div class="qr-ctl">
+            <span class="chip on">홈</span><span class="chip">이번 회차 자료</span>
+            <span class="chip">갤러리</span><span class="chip">결과물 올리기</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note"><div class="note-body">QR은 외부 생성 서비스가 아니라 <b>페이지 안에서 직접 그립니다</b> — 외부 API를 쓰면 우리 주소가 제3자 로그에 남습니다. 도메인이 <code style="font-family:var(--mono);font-size:12px">*.vercel.app</code>으로 확정됐으므로 1단계 배포에서 주소가 정해지면 그대로 고정됩니다.</div></div>
+  </section>
+
+  <!-- ══ 관리자 ══ -->
+  <section class="plate">
+    <div class="plate-head">
+      <div class="route">/admin</div>
+      <h2>관리자 — 비밀번호는 ‘로그인’이 아니라 ‘모드 전환’</h2>
+      <p class="why">통과하면 사이트 전역에서 편집 컨트롤이 켜집니다. 별도의 관리자 사이트를 만들지 않습니다.</p>
+    </div>
+
+    <div class="frame">
+      <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="frame-url">ai-class.vercel.app/admin</span></div>
+      <div class="frame-body">
+        <div class="adm-banner">
+          <span class="lft">● 관리자 모드 ON</span>
+          <span style="color:var(--muted)">사이트 전체에서 편집 버튼이 보입니다</span>
+          <span class="r"><span class="btn-ghost" style="padding:4px 9px;font-size:11px">수강생 화면 미리보기</span>
+                <span class="btn-ghost" style="padding:4px 9px;font-size:11px">로그아웃</span></span>
+        </div>
+        <div class="app-main">
+          <div class="adm-grid">
+            <div class="panel">
+              <h5>공지 배너</h5>
+              <div class="inp" style="min-height:58px;font-size:12.5px;line-height:1.6">8/12(수) 3주차 — 노트북·크롬 설치 필수. 실습용 Colab 링크는 자료에 올려뒀어요.</div>
+              <div style="display:flex;align-items:center;gap:9px">
+                <span class="chk"><span class="box">✓</span><span>배너 표시</span></span>
+                <span style="flex:1"></span><span class="btn" style="padding:6px 13px;font-size:12px">저장</span>
+              </div>
+            </div>
+            <div class="panel">
+              <h5>기기 및 저장공간</h5>
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted)">
+                  <span>Supabase 저장공간</span><span style="font-family:var(--mono)">312MB / 1GB</span></div>
+                <div class="bar"><i style="width:31%"></i></div>
+              </div>
+              <div class="divider"></div>
+              <div style="display:flex;flex-direction:column;gap:6px;font-size:11.5px;color:var(--muted)">
+                <div style="display:flex;justify-content:space-between"><span>내 노트북 · 방금 전</span><span class="pill live">현재 기기</span></div>
+                <div style="display:flex;justify-content:space-between"><span>강의실 PC · 6일 전</span><span class="pill">30일 기억</span></div>
+              </div>
+              <span class="btn-ghost" style="justify-content:center;color:var(--danger);border-color:var(--danger)">모든 기기 로그아웃</span>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div style="display:flex;align-items:center"><h5>회차 관리</h5><span style="flex:1"></span>
+              <span class="btn" style="padding:6px 13px;font-size:12px">＋ 새 회차</span></div>
+            <table class="tbl">
+              <thead><tr><th>번호</th><th>제목</th><th>날짜</th><th>자료</th><th>결과물</th><th>상태</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>01</td><td>AI 도구 둘러보기</td><td>7/29</td><td>3</td><td>12</td><td><span class="pill live">공개</span></td><td style="color:var(--muted)">편집 · 🗑</td></tr>
+                <tr><td>02</td><td>프롬프트 기초</td><td>8/5</td><td>4</td><td>9</td><td><span class="pill live">공개</span></td><td style="color:var(--muted)">편집 · 🗑</td></tr>
+                <tr><td>03</td><td>프롬프트 엔지니어링 기초</td><td>8/12</td><td>5</td><td>7</td><td><span class="pill live">공개</span></td><td style="color:var(--muted)">편집 · 🗑</td></tr>
+                <tr><td>04</td><td>나만의 랜딩페이지 만들기</td><td>8/19</td><td>0</td><td>0</td><td><span class="pill">준비 중</span></td><td style="color:var(--muted)">편집 · 🗑</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note"><div class="note-body">회차 삭제는 <b>회차 제목을 직접 타이핑</b>해야 확인됩니다. 무료 플랜에는 복원 가능한 백업이 없어서 잘못 누른 삭제가 곧 영구 손실이기 때문입니다. 삭제해도 실제로는 숨겨질 뿐이고, 그 회차의 결과물은 함께 지워지지 않고 ‘회차 없음’으로 표시됩니다. <b>[모든 기기 로그아웃]</b>이 눈에 띄는 자리에 있는 이유는 — 이 앱에서 가장 현실적인 유출 경로가 해킹이 아니라 강의실 프로젝터에 비밀번호를 타이핑하는 순간이기 때문입니다.</div></div>
+  </section>
+
+  <!-- ══ 모바일 ══ -->
+  <section class="plate">
+    <div class="plate-head">
+      <div class="route">모바일</div>
+      <h2>수업 중 폰 — 보기 위주</h2>
+      <p class="why">20명이 동시에 갤러리를 여는 게 기본 시나리오입니다. 여기서 깨지면 첫날 바로 티가 납니다.</p>
+    </div>
+
+    <div style="display:flex;gap:22px;flex-wrap:wrap">
+      <div style="width:262px">
+        <div class="phone phone-rel">
+          <div class="phone-notch"><span></span></div>
+          <div class="app-notice" style="padding:7px 12px;font-size:11px"><span class="pin">📌</span><span>8/12(수) 3주차 — 노트북·크롬 설치 필수</span></div>
+          <div class="m-nav"><b>AI 실전 클래스</b></div>
+          <div class="m-body">
+            <div class="hero" style="padding:12px;gap:10px">
+              <div class="num" style="font-size:25px">03</div>
+              <div class="txt"><div class="lbl" style="font-size:9.5px">이번 주차</div><h4 style="font-size:13px">프롬프트 엔지니어링 기초</h4></div>
+            </div>
+            <div class="mats">
+              <div class="mat" style="padding:10px 11px"><div class="ico" style="width:24px;height:24px;font-size:11px">🔗</div><div class="t"><b style="font-size:12px">3주차 강의 슬라이드</b><span style="font-size:9.5px">slides-week3.vercel.app</span></div></div>
+              <div class="mat" style="padding:10px 11px"><div class="ico" style="width:24px;height:24px;font-size:11px">📄</div><div class="t"><b style="font-size:12px">프롬프트 치트시트.pdf</b><span style="font-size:9.5px">PDF · 2.4MB</span></div></div>
+            </div>
+          </div>
+          <div class="m-tabs"><div class="on"><span class="ic">▤</span>홈</div><div><span class="ic">▦</span>갤러리</div></div>
+        </div>
+        <div class="phone-cap">홈 — 1열 리스트</div>
+      </div>
+
+      <div style="width:262px">
+        <div class="phone phone-rel">
+          <div class="phone-notch"><span></span></div>
+          <div class="m-nav"><b>결과물 갤러리</b><span style="flex:1"></span><span style="font-size:11px;color:var(--muted)">필터 ▾</span></div>
+          <div class="m-body">
+            <div class="search" style="margin-left:0;font-size:11px">🔍 제목·닉네임 검색</div>
+            <div class="grid2">
+              <div class="card"><div class="thumb" style="background:linear-gradient(135deg,#1F7A5C,#7BB88A)"><span class="ext">↗</span></div>
+                <div class="card-b" style="padding:7px 8px"><h6 style="font-size:11px">우리 강아지 소개</h6><span class="who" style="font-size:9.5px">지연 · 3주차</span></div></div>
+              <div class="card"><div class="thumb" style="background:linear-gradient(135deg,#2E5E8C,#57A0A8)"><span class="ext">↗</span></div>
+                <div class="card-b" style="padding:7px 8px"><h6 style="font-size:11px">카페 메뉴 추천</h6><span class="who" style="font-size:9.5px">주희 · 3주차</span></div></div>
+              <div class="card"><div class="thumb" style="background:linear-gradient(135deg,#6E4B8E,#B0729B)"></div>
+                <div class="card-b" style="padding:7px 8px"><h6 style="font-size:11px">회의록 요약 도구</h6><span class="who" style="font-size:9.5px">민수 · 3주차</span></div></div>
+              <div class="card"><div class="thumb" style="background:linear-gradient(135deg,#8C5A2B,#C99A54)"><span class="ext">↗</span></div>
+                <div class="card-b" style="padding:7px 8px"><h6 style="font-size:11px">감정 분석 노트북</h6><span class="who" style="font-size:9.5px">태호 · 3주차</span></div></div>
+            </div>
+          </div>
+          <div class="fab">＋</div>
+          <div class="m-tabs"><div><span class="ic">▤</span>홈</div><div class="on"><span class="ic">▦</span>갤러리</div></div>
+        </div>
+        <div class="phone-cap">갤러리 — 2열 + FAB</div>
+      </div>
+    </div>
+
+    <div class="note"><div class="note-body">필터 바 전체를 <b>[필터 ▾]</b> 버튼 하나로 접고 검색만 상시 노출합니다. 하단 탭바는 <b>[홈][갤러리]</b> 둘뿐 — 수업 중에 실제로 오가는 화면은 이 두 개입니다.</div></div>
+  </section>
+
+  <section class="legend">
+    <h2>목업에 반영된 결정</h2>
+    <ul>
+      <li><b>썸네일 폴백이 기본값</b> — 회색 빈 박스 대신 주소 해시 기반 그라데이션. OG 자동 추출은 그 위에 얹는 보너스입니다.</li>
+      <li><b>PIN은 거의 안 보이게</b> — 같은 브라우저에서는 묻지 않습니다. 게시 직전 확인 한 번으로 오타 잠김을 막습니다.</li>
+      <li><b>관리자 모드는 인라인</b> — 별도 관리자 사이트 없이 같은 화면에 편집 컨트롤이 켜집니다.</li>
+      <li><b>공개 동의 체크박스</b> — 로그인이 없다는 사실을 올리는 순간 한 번은 알려야 합니다.</li>
+      <li><b>첫 배포에는 댓글·검색·태그 필터가 없습니다</b> — 위 목업에는 완성형을 그렸지만, 첫 수업에는 결과물이 0~5개라 필터할 대상이 없습니다. 태그 <i>입력</i>만 첫날부터 켭니다.</li>
+    </ul>
+  </section>
+
+</div>
+
+<script>
+  // 목업용 QR 시각 — 고정 시드로 매번 같은 패턴을 그린다
+  (function () {
+    var c = document.getElementById('qrc');
+    if (!c) return;
+    var ctx = c.getContext('2d'), N = 25, S = c.width / N, seed = 20260812;
+    function rnd() { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }
+    var css = getComputedStyle(document.documentElement);
+    var fg = css.getPropertyValue('--text').trim() || '#171A18';
+    var bg = css.getPropertyValue('--surface').trim() || '#fff';
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.fillStyle = fg;
+    function finder(gx, gy) {
+      for (var y = 0; y < 7; y++) for (var x = 0; x < 7; x++) {
+        var edge = x === 0 || y === 0 || x === 6 || y === 6;
+        var core = x > 1 && x < 5 && y > 1 && y < 5;
+        if (edge || core) ctx.fillRect((gx + x) * S, (gy + y) * S, S, S);
+      }
+    }
+    for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) {
+      var inF = (x < 8 && y < 8) || (x > N - 9 && y < 8) || (x < 8 && y > N - 9);
+      if (!inF && rnd() > 0.52) ctx.fillRect(x * S, y * S, S, S);
+    }
+    finder(0, 0); finder(N - 7, 0); finder(0, N - 7);
+  })();
+</script>

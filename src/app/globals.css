@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+/*
+ * 디자인 토큰 — docs/mockups.html 과 동일한 값.
+ *
+ * 폰트는 웹폰트를 불러오지 않고 시스템 스택을 씁니다. 한글 웹폰트는 수 MB라
+ * 첫 화면 로딩을 눈에 띄게 늦추는데, macOS/Windows 기본 한글 폰트가 이미 충분히
+ * 좋습니다. 강의실 와이파이에서 20명이 동시에 접속하는 게 기본 시나리오라
+ * 내려받을 바이트를 줄이는 쪽이 맞습니다.
+ *
+ * 다크모드는 이번 범위에 없습니다 (docs/REQUIREMENTS.md 의 nonGoals).
+ * 추가할 때는 아래 토큰을 @media (prefers-color-scheme: dark) 로 한 번 더
+ * 선언하면 되고, 컴포넌트는 토큰만 참조하므로 손댈 필요가 없습니다.
+ */
+@theme {
+  --color-canvas: #fafaf9;
+  --color-surface: #ffffff;
+  --color-surface-2: #f4f5f3;
+
+  --color-line: #e3e6e2;
+  --color-line-strong: #d3d7d2;
+
+  --color-ink: #171a18;
+  --color-muted: #6c726e;
+  --color-faint: #9aa09b;
+
+  --color-accent: #1c7a59;
+  --color-accent-strong: #145c42;
+  --color-on-accent: #ffffff;
+  --color-soft: #e7f2ec;
+
+  --color-warn: #9a6b14;
+  --color-warn-soft: #fbf2de;
+  --color-danger: #a33a2e;
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard",
+    "Noto Sans KR", "Malgun Gothic", "Segoe UI", Roboto, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, "Cascadia Mono", monospace;
+}
+
+html {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 키보드 포커스는 항상 보이게. 마우스 클릭에는 나타나지 않습니다. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
